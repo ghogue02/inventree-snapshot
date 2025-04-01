@@ -81,6 +81,8 @@ const Scan = () => {
     setCapturedImage(imageDataUrl);
     
     stopCamera();
+    
+    analyzeImage(imageDataUrl);
   };
 
   const resetCapture = () => {
@@ -128,18 +130,20 @@ const Scan = () => {
     return items;
   };
 
-  const analyzeImage = async () => {
-    if (!capturedImage) return;
+  const analyzeImage = async (imageData?: string) => {
+    const imageToAnalyze = imageData || capturedImage;
+    
+    if (!imageToAnalyze) return;
     
     setIsAnalyzing(true);
     
     try {
-      const base64Data = capturedImage.split(",")[1];
+      const base64Data = imageToAnalyze.split(",")[1];
       
       toast.loading("Analyzing image...");
       
       const result = await analyzeImageWithOpenAI(
-        capturedImage,
+        imageToAnalyze,
         "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
       );
       
@@ -436,20 +440,10 @@ const Scan = () => {
                   )}
 
                   {capturedImage && !isAnalyzing && !analysisResult && (
-                    <>
-                      <Button onClick={analyzeImage} variant="default">
-                        <Loader2 className="mr-2 h-4 w-4" />
-                        Analyze Inventory
-                      </Button>
-                      <Button onClick={goToAddProduct} variant="secondary">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add as Product
-                      </Button>
-                      <Button onClick={resetCapture} variant="outline">
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Retake
-                      </Button>
-                    </>
+                    <Button disabled>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </Button>
                   )}
 
                   {isAnalyzing && (
