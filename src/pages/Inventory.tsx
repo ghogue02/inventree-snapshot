@@ -10,9 +10,11 @@ import { Search, Plus, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -50,7 +52,7 @@ const Inventory = () => {
               className="pl-10"
             />
           </div>
-          <Button>
+          <Button onClick={() => navigate("/add-product")}>
             <Plus className="mr-2 h-4 w-4" />
             Add Product
           </Button>

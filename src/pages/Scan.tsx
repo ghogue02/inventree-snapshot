@@ -3,7 +3,7 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { processInventoryVideo, analyzeImageWithOpenAI, getProducts, addInventoryCounts } from "@/services/apiService";
-import { Camera, Check, Edit, Loader2, RefreshCw, Save, Trash } from "lucide-react";
+import { Camera, Check, Edit, Loader2, RefreshCw, Save, Trash, Upload, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -230,6 +230,15 @@ const Scan = () => {
     }
   };
 
+  const goToAddProduct = () => {
+    if (capturedImage) {
+      sessionStorage.setItem('capturedProductImage', capturedImage);
+      navigate("/add-product?mode=camera");
+    } else {
+      navigate("/add-product");
+    }
+  };
+
   const EditableItem = ({ item, index }: { item: InventoryRecognitionResult, index: number }) => {
     const form = useForm<InventoryRecognitionResult>({
       defaultValues: item
@@ -362,6 +371,10 @@ const Scan = () => {
                         <Loader2 className="mr-2 h-4 w-4" />
                         Analyze Inventory
                       </Button>
+                      <Button onClick={goToAddProduct} variant="secondary">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add as Product
+                      </Button>
                       <Button onClick={resetCapture} variant="outline">
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Retake
@@ -381,6 +394,10 @@ const Scan = () => {
                       <Button onClick={saveInventoryCounts} variant="default">
                         <Check className="mr-2 h-4 w-4" />
                         Save Inventory Counts
+                      </Button>
+                      <Button onClick={goToAddProduct} variant="secondary">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add as Product
                       </Button>
                       <Button onClick={resetCapture} variant="outline">
                         <RefreshCw className="mr-2 h-4 w-4" />
