@@ -131,8 +131,12 @@ const Scan = () => {
       
       for (const product of products) {
         if (cleanLine.includes(product.name.toLowerCase())) {
-          const numberMatch = cleanLine.match(/(\d+)(?:\.(\d+))?\s*(?:kg|g|lbs|oz|bottles?|packages?)/i);
-          const count = numberMatch ? parseFloat(numberMatch[0]) : Math.floor(Math.random() * 10) + 1;
+          let count = 1;
+          
+          const quantityMatch = cleanLine.match(/(\d+)\s+(?:boxes|packages|items|cans|bottles|jars)/i);
+          if (quantityMatch) {
+            count = parseInt(quantityMatch[1], 10);
+          }
           
           items.push({
             productId: product.id,

@@ -40,7 +40,7 @@ export const debugInventoryCounts = (counts: any[]) => {
   return counts;
 };
 
-// New function to analyze product with OpenAI Vision API
+// Process product with OpenAI Vision API
 export const analyzeProductWithOpenAI = async (imageBase64: string): Promise<any> => {
   try {
     console.log('Sending image for product analysis...');
@@ -60,6 +60,11 @@ export const analyzeProductWithOpenAI = async (imageBase64: string): Promise<any
     if (!response.data) {
       console.error('Invalid response format:', response.data);
       throw new Error('Invalid response from product analysis service');
+    }
+
+    // Ensure the currentStock is always 1 for a single product regardless of weight/size
+    if (response.data.product && typeof response.data.product.currentStock !== 'undefined') {
+      response.data.product.currentStock = 1;
     }
     
     console.log('Product analysis successful', response.data);

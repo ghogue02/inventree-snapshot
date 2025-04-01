@@ -43,7 +43,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing food products for inventory management. For the given product image, extract the following details: product name, category (e.g., Grains, Dairy, Vegetables, etc.), unit (e.g., oz, lb, each, etc.), cost (provide a reasonable estimate based on the product if not visible), current stock (default to 1), and reorder point (suggest a reasonable value). Format the response as JSON with these exact properties: name, category, unit, cost, currentStock, reorderPoint.'
+            content: 'You are an expert at analyzing food products for inventory management. For the given product image, extract the following details: product name, category (e.g., Grains, Dairy, Vegetables, etc.), unit (e.g., oz, lb, each, etc.), cost (provide a reasonable estimate based on the product if not visible), current stock (always set this to 1 box/package/item regardless of weight/volume), and reorder point (suggest a reasonable value). Format the response as JSON with these exact properties: name, category, unit, cost, currentStock, reorderPoint. Note that currentStock should ALWAYS be set to 1 regardless of the product weight or volume - it represents the count of individual packages or items visible in the image.'
           },
           {
             role: 'user',
@@ -75,6 +75,9 @@ serve(async (req) => {
       const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         productData = JSON.parse(jsonMatch[0]);
+        
+        // Always ensure currentStock is set to 1 (one item/package)
+        productData.currentStock = 1;
       } else {
         throw new Error("No JSON found in the response");
       }
