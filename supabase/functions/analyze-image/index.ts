@@ -27,6 +27,11 @@ serve(async (req) => {
 
     console.log('Calling OpenAI Vision API with prompt:', prompt);
 
+    // Ensure the image is properly formatted for OpenAI
+    const imageUrl = imageBase64.startsWith('data:') 
+      ? imageBase64 
+      : `data:image/jpeg;base64,${imageBase64}`;
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,21 +49,24 @@ serve(async (req) => {
             role: 'user',
             content: [
               { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: imageBase64 } }
+              { type: 'image_url', image_url: { url: imageUrl } }
             ]
           }
         ],
+        max_tokens: 500,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
     const analysis = data.choices[0].message.content;
+
+    console.log('Successfully analyzed image with OpenAI');
 
     return new Response(
       JSON.stringify({ analysis }),

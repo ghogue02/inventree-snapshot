@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -100,13 +99,17 @@ const Scan = () => {
       // Remove the prefix from the data URL to get just the base64 data
       const base64Data = capturedImage.split(",")[1];
       
+      toast.loading("Analyzing image...");
+      
       // Call OpenAI Vision API
       const result = await analyzeImageWithOpenAI(
-        base64Data,
+        capturedImage, // Send the full data URL
         "Please analyze this image and identify all food inventory items you see. For each item, provide an estimated quantity."
       );
       
       setAnalysisResult(result);
+      toast.dismiss();
+      toast.success("Analysis complete");
       
       // Mock recognition based on products and analysis
       const recognizedItems = mockRecognitionFromAnalysis(result, products);
@@ -114,7 +117,9 @@ const Scan = () => {
       
     } catch (error) {
       console.error("Error analyzing image:", error);
-      toast.error("Failed to analyze image");
+      toast.dismiss();
+      toast.error("Failed to analyze image. Please try again or upload a clearer photo.");
+      setAnalysisResult(null);
     } finally {
       setIsAnalyzing(false);
     }
