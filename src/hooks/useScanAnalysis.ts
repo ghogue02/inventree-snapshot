@@ -35,7 +35,7 @@ export const useScanAnalysis = (products: Product[]) => {
       toast.dismiss();
       toast.success("Analysis complete");
       
-      const recognizedItems = mockRecognitionFromAnalysis(result, products);
+      const recognizedItems = extractItemsFromAnalysis(result, products);
       setRecognizedItems(recognizedItems);
       
     } catch (error) {
@@ -48,39 +48,66 @@ export const useScanAnalysis = (products: Product[]) => {
     }
   };
 
-  const mockRecognitionFromAnalysis = (analysisText: string, products: Product[]): InventoryRecognitionResult[] => {
+  const extractItemsFromAnalysis = (analysisText: string, products: Product[]): InventoryRecognitionResult[] => {
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
     
+    // Extract product information from analysis text
+    let currentProductName = "";
+    let currentSize = "";
+    let currentQuantity = 1;
+    
     for (const line of lines) {
-      const cleanLine = line.replace(/^-\s*|\d+\.\s*/, "").toLowerCase();
+      const nameLine = line.match(/product name:?\s*(.+)/i);
+      if (nameLine) {
+        currentProductName = nameLine[1].trim();
+      }
       
-      for (const product of products) {
-        if (cleanLine.includes(product.name.toLowerCase())) {
-          let count = 1;
-          let size: string | undefined;
-          
-          const quantityMatch = cleanLine.match(/(\d+)\s+(?:boxes|packages|items|cans|bottles|jars)/i);
-          if (quantityMatch) {
-            count = parseInt(quantityMatch[1], 10);
-          }
-          
-          const sizeMatch = cleanLine.match(/(\d+(?:\.\d+)?\s*(?:oz|ounce|fl\s*oz|pound|lb|g|gram|kg|ml|l|liter)s?)/i);
-          if (sizeMatch) {
-            size = sizeMatch[1];
-          }
-          
+      const sizeLine = line.match(/size\s*\/?\s*volume:?\s*(.+)/i);
+      if (sizeLine) {
+        currentSize = sizeLine[1].trim();
+      }
+      
+      const quantityLine = line.match(/quantity:?\s*(\d+)/i);
+      if (quantityLine) {
+        currentQuantity = parseInt(quantityLine[1], 10);
+      }
+      
+      // If we have a product name, try to find it in existing products
+      if (currentProductName && 
+         (nameLine || sizeLine || quantityLine || line.trim().length === 0 || 
+          line.includes("No other") || line.includes("visible"))) {
+        
+        const matchedProduct = checkIfItemExists(currentProductName);
+        
+        if (currentProductName) {
           items.push({
-            productId: product.id,
-            name: product.name,
-            count,
-            confidence: 0.85 + Math.random() * 0.1,
-            size
+            productId: matchedProduct?.id || "",
+            name: currentProductName,
+            count: currentQuantity || 1,
+            confidence: 0.9,
+            size: currentSize
           });
           
-          break;
+          // Reset for next product
+          currentProductName = "";
+          currentSize = "";
+          currentQuantity = 1;
         }
       }
+    }
+    
+    // If we have a product at the end of processing, add it
+    if (currentProductName) {
+      const matchedProduct = checkIfItemExists(currentProductName);
+      
+      items.push({
+        productId: matchedProduct?.id || "",
+        name: currentProductName,
+        count: currentQuantity,
+        confidence: 0.9,
+        size: currentSize
+      });
     }
     
     return items;
@@ -120,17 +147,26 @@ export const useScanAnalysis = (products: Product[]) => {
     try {
       toast.loading("Saving inventory counts...");
       
-      const counts = recognizedItems.map(item => ({
-        productId: item.productId,
-        count: item.count,
-        countedAt: new Date(),
-        countMethod: "video" as const,
-        notes: "Counted via camera scan"
-      }));
+      // Filter out items that don't have a product ID
+      const validCounts = recognizedItems
+        .filter(item => item.productId)
+        .map(item => ({
+          productId: item.productId,
+          count: item.count,
+          countedAt: new Date(),
+          countMethod: "video" as const,
+          notes: "Counted via camera scan"
+        }));
 
-      console.log("Attempting to save inventory counts:", counts);
+      if (validCounts.length === 0) {
+        toast.dismiss();
+        toast.warning("No valid inventory items to save. Please add products to inventory first.");
+        return;
+      }
       
-      const result = await addInventoryCounts(counts);
+      console.log("Attempting to save inventory counts:", validCounts);
+      
+      const result = await addInventoryCounts(validCounts);
       
       toast.dismiss();
       toast.success("Inventory counts saved successfully");
@@ -171,6 +207,8 @@ export const useScanAnalysis = (products: Product[]) => {
   };
 
   const checkIfItemExists = (name: string): Product | undefined => {
+    if (!name) return undefined;
+    
     const normalizedName = name.toLowerCase().trim();
     return products.find(
       product => product.name.toLowerCase().trim().includes(normalizedName) || 
@@ -180,7 +218,7 @@ export const useScanAnalysis = (products: Product[]) => {
 
   const addToInventory = async (item: InventoryRecognitionResult) => {
     try {
-      toast.loading("Adding item to inventory...");
+      toast.loading(`Adding "${item.name}" to inventory...`);
       
       // Create a new product
       const newProduct = await addProduct({

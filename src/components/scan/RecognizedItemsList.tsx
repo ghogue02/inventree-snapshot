@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface RecognizedItemsListProps {
   items: InventoryRecognitionResult[];
@@ -27,6 +28,7 @@ const RecognizedItemsList = ({
   checkIfItemExists
 }: RecognizedItemsListProps) => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [addingItem, setAddingItem] = useState<number | null>(null);
 
   const startEditing = (index: number) => {
     setEditingItemIndex(index);
@@ -34,6 +36,17 @@ const RecognizedItemsList = ({
 
   const cancelEditing = () => {
     setEditingItemIndex(null);
+  };
+
+  const handleAddToInventory = async (item: InventoryRecognitionResult, index: number) => {
+    if (!onAddToInventory) return;
+    
+    setAddingItem(index);
+    try {
+      await onAddToInventory(item);
+    } finally {
+      setAddingItem(null);
+    }
   };
 
   const EditableItem = ({ item, index }: { item: InventoryRecognitionResult, index: number }) => {
@@ -67,6 +80,7 @@ const RecognizedItemsList = ({
                       {...field} 
                       className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
+                      <option value="">-- Select Product --</option>
                       {productOptions.map(option => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -138,8 +152,15 @@ const RecognizedItemsList = ({
               <EditableItem item={item} index={index} />
             ) : (
               <div className="flex justify-between items-center">
-                <div>
-                  <div className="font-medium">{item.name}</div>
+                <div className="flex-1">
+                  <div className="font-medium flex items-center gap-2">
+                    {item.name}
+                    {!itemExists && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        Not in inventory
+                      </Badge>
+                    )}
+                  </div>
                   {item.size && (
                     <div className="text-xs text-muted-foreground">
                       Size: {item.size}
@@ -148,11 +169,6 @@ const RecognizedItemsList = ({
                   <div className="text-xs text-muted-foreground">
                     Confidence: {Math.round(item.confidence * 100)}%
                   </div>
-                  {!itemExists && (
-                    <div className="text-xs text-amber-600 font-medium mt-1">
-                      Not in inventory
-                    </div>
-                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
@@ -162,13 +178,27 @@ const RecognizedItemsList = ({
                   <div className="flex gap-1">
                     {!itemExists && onAddToInventory && (
                       <Button 
-                        onClick={() => onAddToInventory(item)} 
+                        onClick={() => handleAddToInventory(item, index)} 
                         size="sm" 
                         variant="outline"
                         className={cn("text-green-600 border-green-600", 
                           "hover:bg-green-50 hover:text-green-700")}
+                        disabled={addingItem === index}
                       >
-                        <Plus className="h-4 w-4" />
+                        {addingItem === index ? (
+                          <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Adding...
+                          </span>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add to Inventory
+                          </>
+                        )}
                       </Button>
                     )}
                     <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
