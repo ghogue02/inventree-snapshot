@@ -121,13 +121,27 @@ export const getInvoices = async (): Promise<Invoice[]> => {
         
         return {
           ...invoice,
-          items: itemsData,
-          date: new Date(invoice.date) // Convert string date to Date object
+          id: invoice.id,
+          supplierName: invoice.supplier_name,
+          invoiceNumber: invoice.invoice_number,
+          date: new Date(invoice.date),
+          total: invoice.total,
+          paidStatus: invoice.paid_status as 'paid' | 'unpaid' | 'partial',
+          imageUrl: invoice.image_url,
+          items: itemsData.map(item => ({
+            id: item.id,
+            invoiceId: item.invoice_id,
+            productId: item.product_id,
+            product: item.product,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            total: item.total
+          }))
         };
       })
     );
     
-    return invoicesWithItems as unknown as Invoice[];
+    return invoicesWithItems as Invoice[];
   } catch (error) {
     console.error('Error in getInvoices:', error);
     throw error;
@@ -183,11 +197,11 @@ export const addInvoice = async (invoice: Omit<Invoice, "id">): Promise<Invoice>
 
     // Return the complete invoice
     const completeInvoice: Invoice = {
-      ...invoiceData,
       id: invoiceId,
       supplierName: invoiceData.supplier_name,
       invoiceNumber: invoiceData.invoice_number,
       date: new Date(invoiceData.date),
+      total: invoiceData.total,
       paidStatus: invoiceData.paid_status as 'paid' | 'unpaid' | 'partial',
       imageUrl: invoiceData.image_url,
       items: invoice.items.map(item => ({
@@ -302,7 +316,6 @@ export const getInventoryCounts = async (): Promise<InventoryCount[]> => {
     }
     
     return data.map(count => ({
-      ...count,
       id: count.id,
       productId: count.product_id,
       product: count.product,
@@ -350,7 +363,7 @@ export const addInventoryCount = async (count: Omit<InventoryCount, "id">): Prom
       countedAt: new Date(data.counted_at),
       countMethod: data.count_method as 'manual' | 'video' | 'invoice',
       notes: data.notes
-    } as InventoryCount;
+    } as unknown as InventoryCount;
   } catch (error) {
     console.error('Error in addInventoryCount:', error);
     throw error;
@@ -392,7 +405,7 @@ export const addInventoryCounts = async (counts: Omit<InventoryCount, "id">[]): 
       countedAt: new Date(item.counted_at),
       countMethod: item.count_method as 'manual' | 'video' | 'invoice',
       notes: item.notes
-    })) as InventoryCount[];
+    })) as unknown as InventoryCount[];
   } catch (error) {
     console.error('Error in addInventoryCounts:', error);
     throw error;
@@ -415,7 +428,7 @@ export const processInventoryVideo = async (videoFile: File): Promise<InventoryR
     }
 
     // Get products for matching
-    const { data: products } = await supabase.from('products').select('*');
+    const products = await getProducts();
     
     // Map the response to our expected format
     const results: InventoryRecognitionResult[] = data.items.map((item: any) => {

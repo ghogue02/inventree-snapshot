@@ -27,43 +27,102 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     
-    // Process with OpenAI Vision API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Process with Google Gemini API
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || 'AIzaSyCZZMJ8vA1iizznjHH7jw3KRd4yvARay5s';
+    
+    console.log('Calling Gemini API for video/image analysis');
+    
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/google/gemini-2.0-flash-001:generateContent?key=' + geminiApiKey, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
+        contents: [
           {
-            role: 'system',
-            content: 'You are an expert inventory counting assistant. Identify all food items visible in the image and estimate their quantities as accurately as possible. Format your response as JSON with an array of items, each with "name" and "count" properties. Include only the JSON in your response, nothing else.'
-          },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Count all food inventory items in this image:' },
-              { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64Data}` } }
+            parts: [
+              {
+                text: "You are an expert inventory counting assistant. Identify all food items visible in this image or video and estimate their quantities as accurately as possible. Format your response as JSON with an array of items, each with 'name' and 'count' properties. Include only food inventory items."
+              },
+              {
+                inline_data: {
+                  mime_type: file.type,
+                  data: base64Data
+                }
+              }
             ]
           }
         ],
-        response_format: { type: 'json_object' }
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 2048,
+          responseStructure: {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object", 
+                  "properties": {
+                    "name": {"type": "string"},
+                    "count": {"type": "number"}
+                  },
+                  "required": ["name", "count"]
+                }
+              }
+            },
+            "required": ["items"]
+          }
+        }
       })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error('Gemini API error:', errorData);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log('Successfully processed inventory image');
+    console.log('Successfully processed inventory image/video with Gemini');
     
-    // Parse the content from the assistant's message to get the structured inventory data
-    const inventoryData = JSON.parse(result.choices[0].message.content);
+    let inventoryData;
+    
+    // Extract the inventory data from the Gemini response
+    if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+      // Try to find JSON in the response
+      const content = result.candidates[0].content;
+      
+      // Look for parts with text that contains JSON
+      if (content.parts && content.parts.length > 0) {
+        for (const part of content.parts) {
+          if (part.text) {
+            try {
+              // Try to extract JSON from the text
+              const jsonMatch = part.text.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                inventoryData = JSON.parse(jsonMatch[0]);
+                break;
+              }
+            } catch (e) {
+              console.error('Error parsing JSON from text response:', e);
+            }
+          }
+        }
+      }
+      
+      // If no JSON was found in the parts, check for structured format response
+      if (!inventoryData && content.structuredFormat) {
+        inventoryData = content.structuredFormat;
+      }
+    }
+    
+    // If we still couldn't parse inventory data, return an error
+    if (!inventoryData || !inventoryData.items) {
+      console.error('Failed to parse inventory data from Gemini response');
+      console.log('Raw response:', JSON.stringify(result));
+      inventoryData = { items: [] };
+    }
     
     return new Response(
       JSON.stringify(inventoryData),
