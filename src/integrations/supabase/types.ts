@@ -48,6 +48,164 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_counts: {
+        Row: {
+          count: number
+          count_method: string
+          counted_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+        }
+        Insert: {
+          count?: number
+          count_method: string
+          counted_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+        }
+        Update: {
+          count?: number
+          count_method?: string
+          counted_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_counts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          product_id: string
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          product_id: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          product_id?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          image_url: string | null
+          invoice_number: string
+          paid_status: string
+          supplier_name: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          image_url?: string | null
+          invoice_number: string
+          paid_status?: string
+          supplier_name: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          image_url?: string | null
+          invoice_number?: string
+          paid_status?: string
+          supplier_name?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string
+          cost: number
+          created_at: string
+          current_stock: number
+          id: string
+          image: string | null
+          name: string
+          reorder_point: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cost?: number
+          created_at?: string
+          current_stock?: number
+          id?: string
+          image?: string | null
+          name: string
+          reorder_point?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cost?: number
+          created_at?: string
+          current_stock?: number
+          id?: string
+          image?: string | null
+          name?: string
+          reorder_point?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scheduled_content: {
         Row: {
           content: string | null

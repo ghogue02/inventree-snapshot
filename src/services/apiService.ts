@@ -1,153 +1,405 @@
+
 import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid';
-import { products, invoices, inventoryCounts } from "./mockData";
 import { Product, Invoice, InventoryCount, InvoiceRecognitionResult, InventoryRecognitionResult } from "@/types/inventory";
 import { supabase } from "@/integrations/supabase/client";
 
-// These API functions simulate backend calls
-// In a real implementation, these would make actual API requests
-
 // Products API
 export const getProducts = async (): Promise<Product[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return [...products];
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*');
+      
+    if (error) {
+      console.error('Error fetching products:', error);
+      toast.error("Failed to fetch products");
+      throw error;
+    }
+    
+    return data as Product[];
+  } catch (error) {
+    console.error('Error in getProducts:', error);
+    throw error;
+  }
 };
 
 export const addProduct = async (product: Omit<Product, "id">): Promise<Product> => {
-  const newProduct = {
-    ...product,
-    id: uuidv4()
-  };
-  
-  products.push(newProduct);
-  toast.success("Product added successfully");
-  return newProduct;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(product)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error adding product:', error);
+      toast.error("Failed to add product");
+      throw error;
+    }
+    
+    toast.success("Product added successfully");
+    return data as Product;
+  } catch (error) {
+    console.error('Error in addProduct:', error);
+    throw error;
+  }
 };
 
 export const updateProduct = async (product: Product): Promise<Product> => {
-  const index = products.findIndex(p => p.id === product.id);
-  
-  if (index !== -1) {
-    products[index] = product;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .update(product)
+      .eq('id', product.id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating product:', error);
+      toast.error("Failed to update product");
+      throw error;
+    }
+    
     toast.success("Product updated successfully");
-    return product;
+    return data as Product;
+  } catch (error) {
+    console.error('Error in updateProduct:', error);
+    throw error;
   }
-  
-  throw new Error("Product not found");
 };
 
 export const deleteProduct = async (id: string): Promise<void> => {
-  const index = products.findIndex(p => p.id === id);
-  
-  if (index !== -1) {
-    products.splice(index, 1);
+  try {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error('Error deleting product:', error);
+      toast.error("Failed to delete product");
+      throw error;
+    }
+    
     toast.success("Product deleted successfully");
-    return;
+  } catch (error) {
+    console.error('Error in deleteProduct:', error);
+    throw error;
   }
-  
-  throw new Error("Product not found");
 };
 
 // Invoices API
 export const getInvoices = async (): Promise<Invoice[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return [...invoices];
+  try {
+    // First get all invoices
+    const { data: invoicesData, error: invoicesError } = await supabase
+      .from('invoices')
+      .select('*')
+      .order('date', { ascending: false });
+      
+    if (invoicesError) {
+      console.error('Error fetching invoices:', invoicesError);
+      toast.error("Failed to fetch invoices");
+      throw invoicesError;
+    }
+
+    // For each invoice, fetch its items
+    const invoicesWithItems = await Promise.all(
+      invoicesData.map(async (invoice) => {
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('invoice_items')
+          .select(`
+            *,
+            product:products(*)
+          `)
+          .eq('invoice_id', invoice.id);
+          
+        if (itemsError) {
+          console.error(`Error fetching items for invoice ${invoice.id}:`, itemsError);
+          return { ...invoice, items: [] };
+        }
+        
+        return {
+          ...invoice,
+          items: itemsData,
+          date: new Date(invoice.date) // Convert string date to Date object
+        };
+      })
+    );
+    
+    return invoicesWithItems as unknown as Invoice[];
+  } catch (error) {
+    console.error('Error in getInvoices:', error);
+    throw error;
+  }
 };
 
 export const addInvoice = async (invoice: Omit<Invoice, "id">): Promise<Invoice> => {
-  const newInvoice = {
-    ...invoice,
-    id: uuidv4(),
-    items: invoice.items.map(item => ({
-      ...item,
-      id: uuidv4(),
-      invoiceId: ""
-    }))
-  };
-  
-  // Set the invoice ID for each item
-  newInvoice.items.forEach(item => {
-    item.invoiceId = newInvoice.id;
-  });
-  
-  invoices.push(newInvoice);
-  toast.success("Invoice added successfully");
-  return newInvoice;
+  try {
+    // Start a Supabase transaction
+    const { data: invoiceData, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert({
+        supplier_name: invoice.supplierName,
+        invoice_number: invoice.invoiceNumber,
+        date: invoice.date,
+        total: invoice.total,
+        paid_status: invoice.paidStatus,
+        image_url: invoice.imageUrl
+      })
+      .select()
+      .single();
+      
+    if (invoiceError) {
+      console.error('Error creating invoice:', invoiceError);
+      toast.error("Failed to create invoice");
+      throw invoiceError;
+    }
+    
+    const invoiceId = invoiceData.id;
+    
+    // Insert all invoice items
+    const itemsToInsert = invoice.items.map(item => ({
+      invoice_id: invoiceId,
+      product_id: item.productId,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      total: item.total
+    }));
+    
+    const { error: itemsError } = await supabase
+      .from('invoice_items')
+      .insert(itemsToInsert);
+      
+    if (itemsError) {
+      console.error('Error adding invoice items:', itemsError);
+      // Clean up the invoice if items failed
+      await supabase.from('invoices').delete().eq('id', invoiceId);
+      toast.error("Failed to add invoice items");
+      throw itemsError;
+    }
+    
+    toast.success("Invoice added successfully");
+
+    // Return the complete invoice
+    const completeInvoice: Invoice = {
+      ...invoiceData,
+      id: invoiceId,
+      supplierName: invoiceData.supplier_name,
+      invoiceNumber: invoiceData.invoice_number,
+      date: new Date(invoiceData.date),
+      paidStatus: invoiceData.paid_status as 'paid' | 'unpaid' | 'partial',
+      imageUrl: invoiceData.image_url,
+      items: invoice.items.map(item => ({
+        ...item,
+        id: '', // We don't have the IDs yet but they'll be fetched on the next getInvoices call
+        invoiceId: invoiceId
+      }))
+    };
+    
+    return completeInvoice;
+  } catch (error) {
+    console.error('Error in addInvoice:', error);
+    throw error;
+  }
 };
 
 export const updateInvoice = async (invoice: Invoice): Promise<Invoice> => {
-  const index = invoices.findIndex(inv => inv.id === invoice.id);
-  
-  if (index !== -1) {
-    invoices[index] = invoice;
+  try {
+    // Update the invoice basic info
+    const { error: invoiceError } = await supabase
+      .from('invoices')
+      .update({
+        supplier_name: invoice.supplierName,
+        invoice_number: invoice.invoiceNumber,
+        date: invoice.date,
+        total: invoice.total,
+        paid_status: invoice.paidStatus,
+        image_url: invoice.imageUrl
+      })
+      .eq('id', invoice.id);
+      
+    if (invoiceError) {
+      console.error('Error updating invoice:', invoiceError);
+      toast.error("Failed to update invoice");
+      throw invoiceError;
+    }
+
+    // Delete all existing items and insert the new ones
+    const { error: deleteError } = await supabase
+      .from('invoice_items')
+      .delete()
+      .eq('invoice_id', invoice.id);
+      
+    if (deleteError) {
+      console.error('Error deleting invoice items:', deleteError);
+      toast.error("Failed to update invoice items");
+      throw deleteError;
+    }
+    
+    const itemsToInsert = invoice.items.map(item => ({
+      invoice_id: invoice.id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      total: item.total
+    }));
+    
+    const { error: insertError } = await supabase
+      .from('invoice_items')
+      .insert(itemsToInsert);
+      
+    if (insertError) {
+      console.error('Error re-inserting invoice items:', insertError);
+      toast.error("Failed to update invoice items");
+      throw insertError;
+    }
+    
     toast.success("Invoice updated successfully");
     return invoice;
+  } catch (error) {
+    console.error('Error in updateInvoice:', error);
+    throw error;
   }
-  
-  throw new Error("Invoice not found");
 };
 
 export const deleteInvoice = async (id: string): Promise<void> => {
-  const index = invoices.findIndex(inv => inv.id === id);
-  
-  if (index !== -1) {
-    invoices.splice(index, 1);
+  try {
+    // Due to the CASCADE relationship, deleting the invoice will also delete its items
+    const { error } = await supabase
+      .from('invoices')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error('Error deleting invoice:', error);
+      toast.error("Failed to delete invoice");
+      throw error;
+    }
+    
     toast.success("Invoice deleted successfully");
-    return;
+  } catch (error) {
+    console.error('Error in deleteInvoice:', error);
+    throw error;
   }
-  
-  throw new Error("Invoice not found");
 };
 
 // Inventory Counts API
 export const getInventoryCounts = async (): Promise<InventoryCount[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return [...inventoryCounts];
+  try {
+    const { data, error } = await supabase
+      .from('inventory_counts')
+      .select(`
+        *,
+        product:products(*)
+      `)
+      .order('counted_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching inventory counts:', error);
+      toast.error("Failed to fetch inventory counts");
+      throw error;
+    }
+    
+    return data.map(count => ({
+      ...count,
+      id: count.id,
+      productId: count.product_id,
+      product: count.product,
+      count: count.count,
+      countedAt: new Date(count.counted_at),
+      countMethod: count.count_method as 'manual' | 'video' | 'invoice',
+      notes: count.notes
+    })) as unknown as InventoryCount[];
+  } catch (error) {
+    console.error('Error in getInventoryCounts:', error);
+    throw error;
+  }
 };
 
 export const addInventoryCount = async (count: Omit<InventoryCount, "id">): Promise<InventoryCount> => {
-  const newCount = {
-    ...count,
-    id: uuidv4()
-  };
-  
-  inventoryCounts.push(newCount);
-  
-  // Update the product's current stock
-  const product = products.find(p => p.id === newCount.productId);
-  if (product) {
-    product.currentStock = newCount.count;
+  try {
+    const { data, error } = await supabase
+      .from('inventory_counts')
+      .insert({
+        product_id: count.productId,
+        count: count.count,
+        counted_at: count.countedAt,
+        count_method: count.countMethod,
+        notes: count.notes
+      })
+      .select(`
+        *,
+        product:products(*)
+      `)
+      .single();
+      
+    if (error) {
+      console.error('Error adding inventory count:', error);
+      toast.error("Failed to add inventory count");
+      throw error;
+    }
+    
+    toast.success("Inventory count added successfully");
+    
+    return {
+      id: data.id,
+      productId: data.product_id,
+      product: data.product,
+      count: data.count,
+      countedAt: new Date(data.counted_at),
+      countMethod: data.count_method as 'manual' | 'video' | 'invoice',
+      notes: data.notes
+    } as InventoryCount;
+  } catch (error) {
+    console.error('Error in addInventoryCount:', error);
+    throw error;
   }
-  
-  toast.success("Inventory count added successfully");
-  return newCount;
 };
 
 // Add bulk inventory counts
 export const addInventoryCounts = async (counts: Omit<InventoryCount, "id">[]): Promise<InventoryCount[]> => {
-  const newCounts = counts.map(count => ({
-    ...count,
-    id: uuidv4()
-  }));
-  
-  newCounts.forEach(count => {
-    inventoryCounts.push(count);
+  try {
+    const countRecords = counts.map(count => ({
+      product_id: count.productId,
+      count: count.count,
+      counted_at: count.countedAt,
+      count_method: count.countMethod,
+      notes: count.notes
+    }));
     
-    // Update the product's current stock
-    const product = products.find(p => p.id === count.productId);
-    if (product) {
-      product.currentStock = count.count;
+    const { data, error } = await supabase
+      .from('inventory_counts')
+      .insert(countRecords)
+      .select(`
+        *,
+        product:products(*)
+      `);
+      
+    if (error) {
+      console.error('Error adding bulk inventory counts:', error);
+      toast.error("Failed to add inventory counts");
+      throw error;
     }
-  });
-  
-  toast.success(`${newCounts.length} inventory counts added successfully`);
-  return newCounts;
+    
+    toast.success(`${data.length} inventory counts added successfully`);
+    
+    return data.map(item => ({
+      id: item.id,
+      productId: item.product_id,
+      product: item.product,
+      count: item.count,
+      countedAt: new Date(item.counted_at),
+      countMethod: item.count_method as 'manual' | 'video' | 'invoice',
+      notes: item.notes
+    })) as InventoryCount[];
+  } catch (error) {
+    console.error('Error in addInventoryCounts:', error);
+    throw error;
+  }
 };
 
-// AI Recognition Services - Updated to use Supabase Edge Functions
+// AI Recognition Services
 export const processInventoryVideo = async (videoFile: File): Promise<InventoryRecognitionResult[]> => {
   try {
     const formData = new FormData();
@@ -162,9 +414,12 @@ export const processInventoryVideo = async (videoFile: File): Promise<InventoryR
       throw new Error(error.message);
     }
 
+    // Get products for matching
+    const { data: products } = await supabase.from('products').select('*');
+    
     // Map the response to our expected format
     const results: InventoryRecognitionResult[] = data.items.map((item: any) => {
-      const matchedProduct = products.find(p => 
+      const matchedProduct = products?.find(p => 
         p.name.toLowerCase().includes(item.name.toLowerCase()) || 
         item.name.toLowerCase().includes(p.name.toLowerCase())
       );
@@ -181,20 +436,7 @@ export const processInventoryVideo = async (videoFile: File): Promise<InventoryR
     return results.filter(item => item.productId !== '');
   } catch (error) {
     console.error('Error in processInventoryVideo:', error);
-    // Fallback to mock implementation if the edge function fails
-    console.log("Falling back to mock implementation");
-    
-    // This is a mock implementation - in a real app, this would call an actual AI service
-    const results = products
-      .slice(0, Math.floor(Math.random() * products.length) + 1)
-      .map(product => ({
-        productId: product.id,
-        name: product.name,
-        count: Math.floor(Math.random() * 10) + 1,
-        confidence: Math.random() * 0.3 + 0.7 // Random confidence between 0.7 and 1.0
-      }));
-    
-    return results;
+    throw error;
   }
 };
 
@@ -229,78 +471,26 @@ export const processInvoiceImage = async (imageFile: File): Promise<InvoiceRecog
     return invoiceResult;
   } catch (error) {
     console.error('Error in processInvoiceImage:', error);
-    // Fallback to mock implementation if the edge function fails
-    console.log("Falling back to mock implementation");
-    
-    // This is a mock implementation - in a real app, this would call an actual AI service
-    const randomProducts = products
-      .sort(() => Math.random() - 0.5) // Shuffle
-      .slice(0, Math.floor(Math.random() * 4) + 1); // Take 1-4 random products
-    
-    const result: InvoiceRecognitionResult = {
-      supplierName: "Mock Supplier " + Math.floor(Math.random() * 100),
-      invoiceNumber: "INV-" + Math.floor(Math.random() * 10000),
-      date: new Date().toISOString().split('T')[0],
-      total: 0,
-      items: []
-    };
-    
-    // Generate random items
-    result.items = randomProducts.map(product => {
-      const quantity = Math.floor(Math.random() * 5) + 1;
-      const unitPrice = product.cost;
-      const total = quantity * unitPrice;
-      
-      return {
-        name: product.name,
-        quantity,
-        unitPrice,
-        total
-      };
-    });
-    
-    // Calculate total
-    result.total = result.items.reduce((sum, item) => sum + item.total, 0);
-    
-    return result;
+    throw error;
   }
 };
 
 // OpenAI Vision API Integration
 export const analyzeImageWithOpenAI = async (imageBase64: string, prompt: string): Promise<string> => {
-  const apiKey = "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";
-  
   try {
-    // In a real implementation, you would make an actual API call
-    // For demo purposes, we'll simulate the response
-    console.log("Would make an OpenAI API call with:", { prompt });
+    const response = await supabase.functions.invoke('analyze-image', {
+      body: { 
+        imageBase64, 
+        prompt 
+      }
+    });
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // For demo purposes, generate a mock response based on the prompt
-    let response;
-    if (prompt.includes("inventory")) {
-      response = `I can see the following inventory items:
-- Tomatoes: approximately 5-7 kg
-- Onions: approximately 3-4 kg
-- Rice: approximately 10-12 kg
-- Olive Oil: 2 bottles`;
-    } else if (prompt.includes("invoice")) {
-      response = `Invoice Details:
-Supplier: Fresh Foods Inc.
-Invoice #: INV-2023-098
-Date: ${new Date().toLocaleDateString()}
-Items:
-1. Tomatoes - 8kg - $23.92
-2. Chicken Breast - 5kg - $44.95
-3. Rice - 10kg - $24.90
-Total: $93.77`;
-    } else {
-      response = "I can see various food items in what appears to be a restaurant kitchen. To get more specific details, please ask about inventory items or invoice information specifically.";
+    if (response.error) {
+      console.error('Error analyzing image with OpenAI:', response.error);
+      throw new Error(response.error.message);
     }
     
-    return response;
+    return response.data.analysis;
   } catch (error) {
     console.error("Error analyzing image:", error);
     throw new Error("Failed to analyze image with OpenAI Vision API");
