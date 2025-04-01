@@ -43,7 +43,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing food products for inventory management. For the given product image, extract the following details: product name, category (e.g., Grains, Dairy, Vegetables, etc.), unit (e.g., oz, lb, each, etc.), cost (provide a reasonable estimate based on the product if not visible), current stock (always set this to 1 box/package/item regardless of weight/volume), and reorder point (suggest a reasonable value). Format the response as JSON with these exact properties: name, category, unit, cost, currentStock, reorderPoint. Note that currentStock should ALWAYS be set to 1 regardless of the product weight or volume - it represents the count of individual packages or items visible in the image.'
+            content: 'You are an expert at analyzing food products for inventory management. For the given product image, extract the following details: product name (include brand), category (e.g., Grains, Dairy, Vegetables, etc.), unit (e.g., oz, lb, each, etc.), cost (provide a reasonable estimate based on the product if not visible), size/volume (e.g., "16 oz", "1 liter", "2 lb" - be as specific as possible), current stock (always set this to 1 box/package/item regardless of weight/volume), and reorder point (suggest a reasonable value). Format the response as JSON with these exact properties: name, category, unit, cost, size, currentStock, reorderPoint. The "size" field should contain the specific size/volume information.'
           },
           {
             role: 'user',
@@ -78,6 +78,11 @@ serve(async (req) => {
         
         // Always ensure currentStock is set to 1 (one item/package)
         productData.currentStock = 1;
+        
+        // If unit doesn't include the size and size is available, append it
+        if (productData.size && !productData.name.includes(productData.size)) {
+          productData.name = `${productData.name} (${productData.size})`;
+        }
       } else {
         throw new Error("No JSON found in the response");
       }
@@ -91,6 +96,7 @@ serve(async (req) => {
         category: "Other",
         unit: "each",
         cost: 0,
+        size: "",
         currentStock: 1,
         reorderPoint: 5,
         rawAnalysis: analysisText

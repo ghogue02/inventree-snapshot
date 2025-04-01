@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +6,7 @@ export interface Product {
   currentStock: number;
   reorderPoint: number;
   cost: number;
+  size?: string;
   image?: string;
 }
 
@@ -46,6 +46,7 @@ export interface InventoryRecognitionResult {
   name: string;
   count: number;
   confidence: number;
+  size?: string;
 }
 
 export interface InvoiceRecognitionResult {

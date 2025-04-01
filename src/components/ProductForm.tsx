@@ -34,6 +34,7 @@ const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
     cost: 0,
     currentStock: 1,
     reorderPoint: 5,
+    size: '',
     ...initialValues
   });
 
@@ -61,6 +62,7 @@ const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
         cost: typeof product.cost === 'number' ? product.cost : 0,
         currentStock: typeof product.currentStock === 'number' ? product.currentStock : 0,
         reorderPoint: typeof product.reorderPoint === 'number' ? product.reorderPoint : 5,
+        size: product.size,
         image: product.image
       });
 
@@ -104,6 +106,16 @@ const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="size">Size/Volume</Label>
+            <Input
+              id="size"
+              value={product.size}
+              onChange={(e) => handleChange('size', e.target.value)}
+              placeholder="e.g., 16 oz, 1 liter, 2 lb"
+            />
           </div>
 
           <div className="space-y-2">

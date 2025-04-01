@@ -42,7 +42,7 @@ serve(async (req) => {
           {
             parts: [
               {
-                text: "You are an expert inventory counting assistant. Identify all food items visible in this image or video and estimate their quantities as accurately as possible. Format your response as JSON with an array of items, each with 'name' and 'count' properties. Include only food inventory items."
+                text: "You are an expert inventory counting assistant. Identify all food items visible in this image or video and provide detailed information. For each item include: (1) exact product name with brand, (2) size/volume information (e.g., 16 oz, 1 liter, 2 lb), and (3) count as individual items (each package/container counts as 1 unit regardless of size). Format your response as JSON with an array of items, each with 'name', 'size', and 'count' properties."
               },
               {
                 inline_data: {
@@ -65,6 +65,7 @@ serve(async (req) => {
                   "type": "object", 
                   "properties": {
                     "name": {"type": "string"},
+                    "size": {"type": "string"},
                     "count": {"type": "number"}
                   },
                   "required": ["name", "count"]

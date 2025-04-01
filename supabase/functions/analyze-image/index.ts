@@ -16,8 +16,8 @@ serve(async (req) => {
   try {
     const { imageBase64, prompt } = await req.json();
 
-    if (!imageBase64 || !prompt) {
-      throw new Error('Image data and prompt are required');
+    if (!imageBase64) {
+      throw new Error('Image data is required');
     }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -43,12 +43,12 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert at analyzing food inventory and invoice images.'
+            content: 'You are an inventory management assistant that helps identify food items and their quantities. For each item you identify, provide (1) the exact product name, (2) size/volume information (e.g., 16 oz, 1 liter, 2 lb), (3) count as individual units (each box/bottle/package counts as 1 unit regardless of its size).'
           },
           {
             role: 'user',
             content: [
-              { type: 'text', text: prompt },
+              { type: 'text', text: prompt || 'Please analyze this image and identify all food inventory items you see. For each item, provide an estimated quantity.' },
               { type: 'image_url', image_url: { url: imageUrl } }
             ]
           }
@@ -60,7 +60,7 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();

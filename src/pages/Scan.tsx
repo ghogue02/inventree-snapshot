@@ -90,6 +90,44 @@ const Scan = () => {
     startCamera();
   };
 
+  const mockRecognitionFromAnalysis = (analysisText: string, products: Product[]): InventoryRecognitionResult[] => {
+    const items: InventoryRecognitionResult[] = [];
+    const lines = analysisText.split("\n");
+    
+    for (const line of lines) {
+      const cleanLine = line.replace(/^-\s*|\d+\.\s*/, "").toLowerCase();
+      
+      for (const product of products) {
+        if (cleanLine.includes(product.name.toLowerCase())) {
+          let count = 1;
+          let size: string | undefined;
+          
+          const quantityMatch = cleanLine.match(/(\d+)\s+(?:boxes|packages|items|cans|bottles|jars)/i);
+          if (quantityMatch) {
+            count = parseInt(quantityMatch[1], 10);
+          }
+          
+          const sizeMatch = cleanLine.match(/(\d+(?:\.\d+)?\s*(?:oz|ounce|fl\s*oz|pound|lb|g|gram|kg|ml|l|liter)s?)/i);
+          if (sizeMatch) {
+            size = sizeMatch[1];
+          }
+          
+          items.push({
+            productId: product.id,
+            name: product.name,
+            count,
+            confidence: 0.85 + Math.random() * 0.1,
+            size
+          });
+          
+          break;
+        }
+      }
+    }
+    
+    return items;
+  };
+
   const analyzeImage = async () => {
     if (!capturedImage) return;
     
@@ -102,7 +140,7 @@ const Scan = () => {
       
       const result = await analyzeImageWithOpenAI(
         capturedImage,
-        "Please analyze this image and identify all food inventory items you see. For each item, provide an estimated quantity."
+        "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
       );
       
       setAnalysisResult(result);
@@ -120,37 +158,6 @@ const Scan = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  const mockRecognitionFromAnalysis = (analysisText: string, products: Product[]): InventoryRecognitionResult[] => {
-    const items: InventoryRecognitionResult[] = [];
-    const lines = analysisText.split("\n");
-    
-    for (const line of lines) {
-      const cleanLine = line.replace(/^-\s*/, "").toLowerCase();
-      
-      for (const product of products) {
-        if (cleanLine.includes(product.name.toLowerCase())) {
-          let count = 1;
-          
-          const quantityMatch = cleanLine.match(/(\d+)\s+(?:boxes|packages|items|cans|bottles|jars)/i);
-          if (quantityMatch) {
-            count = parseInt(quantityMatch[1], 10);
-          }
-          
-          items.push({
-            productId: product.id,
-            name: product.name,
-            count,
-            confidence: 0.85 + Math.random() * 0.1
-          });
-          
-          break;
-        }
-      }
-    }
-    
-    return items;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,6 +308,23 @@ const Scan = () => {
               )}
             />
           </div>
+          <FormField
+            control={form.control}
+            name="size"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Size/Volume</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="text"
+                    {...field}
+                    value={field.value || ''}
+                    placeholder="e.g., 16 oz, 1 liter"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={cancelEditing}>
               Cancel
@@ -312,6 +336,48 @@ const Scan = () => {
           </div>
         </form>
       </Form>
+    );
+  };
+
+  const renderRecognizedItems = () => {
+    return (
+      <div className="space-y-4">
+        {recognizedItems.map((item, index) => (
+          <div key={index} className="border rounded-md p-4">
+            {editingItemIndex === index ? (
+              <EditableItem item={item} index={index} />
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-medium">{item.name}</div>
+                  {item.size && (
+                    <div className="text-xs text-muted-foreground">
+                      Size: {item.size}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Confidence: {Math.round(item.confidence * 100)}%
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="font-semibold">{item.count.toFixed(1)}</div>
+                    <div className="text-xs text-muted-foreground">units</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={() => removeItem(index)} size="sm" variant="ghost" className="text-destructive">
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -429,38 +495,7 @@ const Scan = () => {
                           Review and edit items before saving
                         </p>
                       </div>
-                      <div className="space-y-4">
-                        {recognizedItems.map((item, index) => (
-                          <div key={index} className="border rounded-md p-4">
-                            {editingItemIndex === index ? (
-                              <EditableItem item={item} index={index} />
-                            ) : (
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="font-medium">{item.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Confidence: {Math.round(item.confidence * 100)}%
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <div className="text-right">
-                                    <div className="font-semibold">{item.count.toFixed(1)}</div>
-                                    <div className="text-xs text-muted-foreground">units</div>
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button onClick={() => removeItem(index)} size="sm" variant="ghost" className="text-destructive">
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      {renderRecognizedItems()}
                     </>
                   )}
                 </CardContent>
@@ -528,22 +563,7 @@ const Scan = () => {
                         </div>
                       )}
 
-                      <div className="space-y-3">
-                        {recognizedItems.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center border-b pb-2">
-                            <div>
-                              <div className="font-medium">{item.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Confidence: {Math.round(item.confidence * 100)}%
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold">{item.count.toFixed(1)}</div>
-                              <div className="text-xs text-muted-foreground">units</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      {renderRecognizedItems()}
                       
                       <div className="mt-4 flex justify-end">
                         <Button onClick={saveInventoryCounts}>
