@@ -1,8 +1,8 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Download, Plus, RefreshCw, Printer, BarChart2, History } from "lucide-react";
-import { InventoryRecognitionResult } from "@/types/inventory";
+import { Check, Download, Plus, RefreshCw, Printer, BarChart2 } from "lucide-react";
+import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import RecognizedItemsList from "./RecognizedItemsList";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,12 +10,14 @@ import { toast } from "sonner";
 interface AnalysisResultsProps {
   analysisResult: string;
   recognizedItems: InventoryRecognitionResult[];
-  products: any[];
+  products: Product[];
   onSaveInventoryCounts: () => void;
   onGoToAddProduct: () => void;
   onResetCapture: () => void;
   onUpdateItem: (index: number, item: InventoryRecognitionResult) => void;
   onRemoveItem: (index: number) => void;
+  onAddToInventory?: (item: InventoryRecognitionResult) => Promise<Product | null>;
+  checkIfItemExists?: (name: string) => Product | undefined;
 }
 
 const AnalysisResults = ({
@@ -26,7 +28,9 @@ const AnalysisResults = ({
   onGoToAddProduct,
   onResetCapture,
   onUpdateItem,
-  onRemoveItem
+  onRemoveItem,
+  onAddToInventory,
+  checkIfItemExists
 }: AnalysisResultsProps) => {
   const [showVisualization, setShowVisualization] = useState(false);
   
@@ -193,6 +197,8 @@ const AnalysisResults = ({
               products={products}
               onUpdateItem={onUpdateItem}
               onRemoveItem={onRemoveItem}
+              onAddToInventory={onAddToInventory}
+              checkIfItemExists={checkIfItemExists}
             />
             <div className="mt-6 flex flex-wrap gap-3 justify-end">
               <Button onClick={onSaveInventoryCounts} variant="default">

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI, processInventoryVideo, addInventoryCounts } from "@/services/apiService";
+import { analyzeImageWithOpenAI, processInventoryVideo, addInventoryCounts, addProduct } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
 
 export const useScanAnalysis = (products: Product[]) => {
@@ -170,6 +170,51 @@ export const useScanAnalysis = (products: Product[]) => {
     }
   };
 
+  const checkIfItemExists = (name: string): Product | undefined => {
+    const normalizedName = name.toLowerCase().trim();
+    return products.find(
+      product => product.name.toLowerCase().trim().includes(normalizedName) || 
+                normalizedName.includes(product.name.toLowerCase().trim())
+    );
+  };
+
+  const addToInventory = async (item: InventoryRecognitionResult) => {
+    try {
+      toast.loading("Adding item to inventory...");
+      
+      // Create a new product
+      const newProduct = await addProduct({
+        name: item.name,
+        category: "Other", // Default category
+        unit: "each", // Default unit
+        currentStock: item.count,
+        reorderPoint: 5, // Default reorder point
+        cost: 0, // Default cost
+        size: item.size
+      });
+
+      // Update the recognized item with the new product ID
+      const updatedItems = recognizedItems.map(existingItem => {
+        if (existingItem.name === item.name) {
+          return { ...existingItem, productId: newProduct.id };
+        }
+        return existingItem;
+      });
+      
+      setRecognizedItems(updatedItems);
+      
+      toast.dismiss();
+      toast.success(`"${item.name}" added to inventory`);
+      
+      return newProduct;
+    } catch (error) {
+      console.error("Error adding item to inventory:", error);
+      toast.dismiss();
+      toast.error("Failed to add item to inventory");
+      return null;
+    }
+  };
+
   return {
     capturedImage,
     setCapturedImage,
@@ -184,6 +229,8 @@ export const useScanAnalysis = (products: Product[]) => {
     updateRecognizedItem,
     removeRecognizedItem,
     goToAddProduct,
-    handleFileSelected
+    handleFileSelected,
+    checkIfItemExists,
+    addToInventory
   };
 };

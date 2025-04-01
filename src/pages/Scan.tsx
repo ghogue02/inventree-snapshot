@@ -32,7 +32,9 @@ const Scan = () => {
     updateRecognizedItem,
     removeRecognizedItem,
     goToAddProduct,
-    handleFileSelected
+    handleFileSelected,
+    checkIfItemExists,
+    addToInventory
   } = useScanAnalysis(products);
 
   const handleImageCaptured = (imageDataUrl: string) => {
@@ -74,6 +76,8 @@ const Scan = () => {
                 onResetCapture={resetCapture}
                 onUpdateItem={updateRecognizedItem}
                 onRemoveItem={removeRecognizedItem}
+                onAddToInventory={addToInventory}
+                checkIfItemExists={checkIfItemExists}
               />
             )}
           </TabsContent>
@@ -97,6 +101,8 @@ const Scan = () => {
                     onResetCapture={resetCapture}
                     onUpdateItem={updateRecognizedItem}
                     onRemoveItem={removeRecognizedItem}
+                    onAddToInventory={addToInventory}
+                    checkIfItemExists={checkIfItemExists}
                   />
                 )}
               </CardContent>

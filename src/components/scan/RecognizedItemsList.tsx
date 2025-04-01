@@ -1,25 +1,30 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { InventoryRecognitionResult } from "@/types/inventory";
-import { Edit, Trash, Save } from "lucide-react";
+import { InventoryRecognitionResult, Product } from "@/types/inventory";
+import { Edit, Trash, Save, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import { cn } from "@/lib/utils";
 
 interface RecognizedItemsListProps {
   items: InventoryRecognitionResult[];
-  products: any[];
+  products: Product[];
   onUpdateItem: (index: number, item: InventoryRecognitionResult) => void;
   onRemoveItem: (index: number) => void;
+  onAddToInventory?: (item: InventoryRecognitionResult) => Promise<Product | null>;
+  checkIfItemExists?: (name: string) => Product | undefined;
 }
 
 const RecognizedItemsList = ({ 
   items, 
   products, 
   onUpdateItem, 
-  onRemoveItem 
+  onRemoveItem,
+  onAddToInventory,
+  checkIfItemExists
 }: RecognizedItemsListProps) => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
@@ -124,41 +129,61 @@ const RecognizedItemsList = ({
 
   return (
     <div className="space-y-4">
-      {items.map((item, index) => (
-        <div key={index} className="border rounded-md p-4">
-          {editingItemIndex === index ? (
-            <EditableItem item={item} index={index} />
-          ) : (
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="font-medium">{item.name}</div>
-                {item.size && (
+      {items.map((item, index) => {
+        const itemExists = item.productId || (checkIfItemExists && checkIfItemExists(item.name));
+        
+        return (
+          <div key={index} className="border rounded-md p-4">
+            {editingItemIndex === index ? (
+              <EditableItem item={item} index={index} />
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-medium">{item.name}</div>
+                  {item.size && (
+                    <div className="text-xs text-muted-foreground">
+                      Size: {item.size}
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground">
-                    Size: {item.size}
+                    Confidence: {Math.round(item.confidence * 100)}%
                   </div>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  Confidence: {Math.round(item.confidence * 100)}%
+                  {!itemExists && (
+                    <div className="text-xs text-amber-600 font-medium mt-1">
+                      Not in inventory
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <div className="font-semibold">{item.count.toFixed(1)}</div>
+                    <div className="text-xs text-muted-foreground">units</div>
+                  </div>
+                  <div className="flex gap-1">
+                    {!itemExists && onAddToInventory && (
+                      <Button 
+                        onClick={() => onAddToInventory(item)} 
+                        size="sm" 
+                        variant="outline"
+                        className={cn("text-green-600 border-green-600", 
+                          "hover:bg-green-50 hover:text-green-700")}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={() => onRemoveItem(index)} size="sm" variant="ghost" className="text-destructive">
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="font-semibold">{item.count.toFixed(1)}</div>
-                  <div className="text-xs text-muted-foreground">units</div>
-                </div>
-                <div className="flex gap-1">
-                  <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button onClick={() => onRemoveItem(index)} size="sm" variant="ghost" className="text-destructive">
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
