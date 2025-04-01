@@ -205,6 +205,8 @@ const Scan = () => {
     }
 
     try {
+      toast.loading("Saving inventory counts...");
+      
       const counts = recognizedItems.map(item => ({
         productId: item.productId,
         count: item.count,
@@ -213,14 +215,18 @@ const Scan = () => {
         notes: "Counted via camera scan"
       }));
 
-      await addInventoryCounts(counts);
+      console.log("Attempting to save inventory counts:", counts);
       
+      const result = await addInventoryCounts(counts);
+      
+      toast.dismiss();
       toast.success("Inventory counts saved successfully");
       navigate("/inventory");
       
     } catch (error) {
       console.error("Error saving inventory counts:", error);
-      toast.error("Failed to save inventory counts");
+      toast.dismiss();
+      toast.error("Failed to save inventory counts: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 

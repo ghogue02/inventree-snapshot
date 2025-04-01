@@ -33,3 +33,9 @@ export const analyzeImageWithOpenAI = async (imageBase64: string, prompt: string
     throw new Error("Failed to analyze image with OpenAI Vision API");
   }
 };
+
+// Helper function to debug inventory counts before saving
+export const debugInventoryCounts = (counts: any[]) => {
+  console.log('Inventory counts to save:', JSON.stringify(counts, null, 2));
+  return counts;
+};
