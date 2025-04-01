@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { InventoryRecognitionResult } from "@/types/inventory";
 
 // OpenAI Vision API Integration
 export const analyzeImageWithOpenAI = async (imageBase64: string, prompt: string): Promise<string> => {
@@ -74,4 +75,64 @@ export const analyzeProductWithOpenAI = async (imageBase64: string): Promise<any
     toast.error("Failed to analyze product. Please try again.");
     throw new Error("Failed to analyze product with OpenAI Vision API");
   }
+};
+
+// New utility to export inventory data to CSV format
+export const exportInventoryToCSV = (items: InventoryRecognitionResult[]): string => {
+  const headers = ["Product Name", "Size", "Count", "Confidence"];
+  const csvContent = [
+    headers.join(","),
+    ...items.map(item => [
+      `"${item.name}"`, 
+      `"${item.size || 'N/A'}"`,
+      item.count,
+      `${Math.round(item.confidence * 100)}%`
+    ].join(","))
+  ].join("\n");
+  
+  return csvContent;
+};
+
+// New utility to generate print-friendly HTML
+export const generatePrintableHTML = (items: InventoryRecognitionResult[]): string => {
+  const tableRows = items.map(item => `
+    <tr>
+      <td>${item.name}</td>
+      <td>${item.size || 'N/A'}</td>
+      <td>${item.count}</td>
+      <td>${Math.round(item.confidence * 100)}%</td>
+    </tr>
+  `).join('');
+  
+  return `
+    <html>
+      <head>
+        <title>Inventory Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { color: #333; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+          th { background-color: #f2f2f2; }
+        </style>
+      </head>
+      <body>
+        <h1>Inventory Scan Report - ${new Date().toLocaleDateString()}</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Size/Volume</th>
+              <th>Count</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+        <p>Generated on: ${new Date().toLocaleString()}</p>
+      </body>
+    </html>
+  `;
 };
