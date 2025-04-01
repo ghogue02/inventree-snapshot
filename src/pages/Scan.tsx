@@ -3,12 +3,15 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { processInventoryVideo, analyzeImageWithOpenAI, getProducts, addInventoryCounts } from "@/services/apiService";
-import { Camera, Check, Loader2, RefreshCw } from "lucide-react";
+import { Camera, Check, Edit, Loader2, RefreshCw, Save, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 const Scan = () => {
   const navigate = useNavigate();
@@ -21,6 +24,7 @@ const Scan = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [tab, setTab] = useState("camera");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,18 +72,14 @@ const Scan = () => {
     
     if (!context) return;
     
-    // Set canvas dimensions to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     
-    // Draw the current video frame to the canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // Convert canvas to data URL
     const imageDataUrl = canvas.toDataURL("image/jpeg");
     setCapturedImage(imageDataUrl);
     
-    // Stop the camera
     stopCamera();
   };
 
@@ -96,14 +96,12 @@ const Scan = () => {
     setIsAnalyzing(true);
     
     try {
-      // Remove the prefix from the data URL to get just the base64 data
       const base64Data = capturedImage.split(",")[1];
       
       toast.loading("Analyzing image...");
       
-      // Call OpenAI Vision API
       const result = await analyzeImageWithOpenAI(
-        capturedImage, // Send the full data URL
+        capturedImage,
         "Please analyze this image and identify all food inventory items you see. For each item, provide an estimated quantity."
       );
       
@@ -111,7 +109,6 @@ const Scan = () => {
       toast.dismiss();
       toast.success("Analysis complete");
       
-      // Mock recognition based on products and analysis
       const recognizedItems = mockRecognitionFromAnalysis(result, products);
       setRecognizedItems(recognizedItems);
       
@@ -129,13 +126,11 @@ const Scan = () => {
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
     
-    // Very simple pattern matching - in a real app, this would be much more sophisticated
     for (const line of lines) {
       const cleanLine = line.replace(/^-\s*/, "").toLowerCase();
       
       for (const product of products) {
         if (cleanLine.includes(product.name.toLowerCase())) {
-          // Try to extract a number
           const numberMatch = cleanLine.match(/(\d+)(?:\.(\d+))?\s*(?:kg|g|lbs|oz|bottles?|packages?)/i);
           const count = numberMatch ? parseFloat(numberMatch[0]) : Math.floor(Math.random() * 10) + 1;
           
@@ -169,7 +164,6 @@ const Scan = () => {
     setIsUploading(true);
 
     try {
-      // Process the video with our mock API
       const results = await processInventoryVideo(selectedFile);
       setRecognizedItems(results);
       setAnalysisResult("Video processed successfully. Here are the detected items:");
@@ -182,6 +176,28 @@ const Scan = () => {
     }
   };
 
+  const startEditing = (index: number) => {
+    setEditingItemIndex(index);
+  };
+
+  const cancelEditing = () => {
+    setEditingItemIndex(null);
+  };
+
+  const updateItemData = (index: number, updatedItem: InventoryRecognitionResult) => {
+    const updatedItems = [...recognizedItems];
+    updatedItems[index] = updatedItem;
+    setRecognizedItems(updatedItems);
+    setEditingItemIndex(null);
+    toast.success("Item updated successfully");
+  };
+
+  const removeItem = (index: number) => {
+    const updatedItems = recognizedItems.filter((_, i) => i !== index);
+    setRecognizedItems(updatedItems);
+    toast.success("Item removed from list");
+  };
+
   const saveInventoryCounts = async () => {
     if (recognizedItems.length === 0) {
       toast.error("No items to save");
@@ -189,7 +205,6 @@ const Scan = () => {
     }
 
     try {
-      // Convert recognized items to inventory counts
       const counts = recognizedItems.map(item => ({
         productId: item.productId,
         count: item.count,
@@ -198,7 +213,6 @@ const Scan = () => {
         notes: "Counted via camera scan"
       }));
 
-      // Add the counts to the inventory
       await addInventoryCounts(counts);
       
       toast.success("Inventory counts saved successfully");
@@ -208,6 +222,78 @@ const Scan = () => {
       console.error("Error saving inventory counts:", error);
       toast.error("Failed to save inventory counts");
     }
+  };
+
+  const EditableItem = ({ item, index }: { item: InventoryRecognitionResult, index: number }) => {
+    const form = useForm<InventoryRecognitionResult>({
+      defaultValues: item
+    });
+
+    const onSubmit = (data: InventoryRecognitionResult) => {
+      updateItemData(index, data);
+    };
+
+    const productOptions = products.map(product => ({
+      label: product.name,
+      value: product.id
+    }));
+
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <FormField
+              control={form.control}
+              name="productId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product</FormLabel>
+                  <FormControl>
+                    <select 
+                      {...field} 
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      {productOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="count"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Count</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number"
+                      step="0.1"
+                      {...field}
+                      onChange={e => field.onChange(parseFloat(e.target.value))}
+                      value={field.value}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={cancelEditing}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              <Save className="mr-2 h-4 w-4" />
+              Save
+            </Button>
+          </div>
+        </form>
+      </Form>
+    );
   };
 
   return (
@@ -233,7 +319,6 @@ const Scan = () => {
                       playsInline
                       className={isCapturing ? "opacity-100" : "opacity-0"}
                       onLoadedMetadata={() => {
-                        // Make the video visible once loaded
                         if (videoRef.current) {
                           videoRef.current.classList.remove("opacity-0");
                           videoRef.current.classList.add("opacity-100");
@@ -311,20 +396,41 @@ const Scan = () => {
 
                   {recognizedItems.length > 0 && (
                     <>
-                      <h4 className="font-medium my-3">Recognized Items</h4>
-                      <div className="space-y-3">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">Recognized Items</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Review and edit items before saving
+                        </p>
+                      </div>
+                      <div className="space-y-4">
                         {recognizedItems.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center border-b pb-2">
-                            <div>
-                              <div className="font-medium">{item.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Confidence: {Math.round(item.confidence * 100)}%
+                          <div key={index} className="border rounded-md p-4">
+                            {editingItemIndex === index ? (
+                              <EditableItem item={item} index={index} />
+                            ) : (
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="font-medium">{item.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Confidence: {Math.round(item.confidence * 100)}%
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <div className="font-semibold">{item.count.toFixed(1)}</div>
+                                    <div className="text-xs text-muted-foreground">units</div>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <Button onClick={() => startEditing(index)} size="sm" variant="ghost">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button onClick={() => removeItem(index)} size="sm" variant="ghost" className="text-destructive">
+                                      <Trash className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold">{item.count.toFixed(1)}</div>
-                              <div className="text-xs text-muted-foreground">units</div>
-                            </div>
+                            )}
                           </div>
                         ))}
                       </div>
