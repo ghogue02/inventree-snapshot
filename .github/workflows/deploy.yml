@@ -31,34 +31,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install -g ts-node typescript
+          npm install -g typescript
           NODE_ENV=development npm ci || NODE_ENV=development npm install --legacy-peer-deps
           npm list vite
         env:
           NODE_ENV: development
 
-      - name: Pre-build environment check
+      - name: Build project
         run: |
-          echo "=== Environment Check ==="
-          echo "Node version: $(node -v)"
-          echo "NPM version: $(npm -v)"
-          echo "Vite version: $(npm list vite)"
-          echo "TypeScript version: $(npm list typescript)"
-          echo "=== Directory Structure ==="
-          pwd
-          ls -la
-          echo "=== Package.json ==="
-          cat package.json
-          echo "=== Vite Config ==="
-          cat vite.config.ts
-          echo "=== Environment Variables ==="
-          env | grep -v -i "key" | grep -v -i "token" | grep -v -i "secret"
-          echo "=== Test Vite Config ==="
-          node -e "import('vite').then(vite => vite.loadConfigFromFile({command: 'build', mode: 'production'}, './vite.config.ts').then(config => console.log(config)))"
-
-      - name: Build project with debug
-        run: |
-          echo "Starting build with maximum verbosity..."
+          echo "Starting build..."
           NODE_ENV=production npm run build || {
             echo "Build failed. Checking for error logs..."
             find . -name "*.log" -type f -exec cat {} \;
