@@ -36,7 +36,16 @@ jobs:
 
       - name: Configure MIME Types
         run: |
-          echo "/* application/javascript" > ./dist/_headers
+          cat > ./dist/_headers << EOL
+          /*.js
+            Content-Type: text/javascript
+          /*.mjs
+            Content-Type: text/javascript
+          /*.js.map
+            Content-Type: application/json
+          /*
+            X-Content-Type-Options: nosniff
+          EOL
           touch ./dist/.nojekyll
 
       - name: Deploy to GitHub Pages

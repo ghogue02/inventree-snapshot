@@ -33,12 +33,14 @@ export default defineConfig({
       },
     },
     target: 'esnext',
+    assetsDir: 'assets',
   },
   server: {
     host: "::",
     port: 8080,
     headers: {
       'Content-Type': 'text/javascript',
+      'X-Content-Type-Options': 'nosniff',
     },
   },
   logLevel: 'error',
