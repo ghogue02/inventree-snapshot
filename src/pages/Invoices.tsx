@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,20 +5,32 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Invoice } from "@/types/inventory";
-import { Search, Plus, FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getInvoices } from "@/services/apiService";
+import { Search, Plus, FileText, ChevronDown, ChevronUp, Database } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getInvoices, loadMockInvoices } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: getInvoices
   });
+  
+  const handleLoadMockData = async () => {
+    try {
+      await loadMockInvoices();
+      // Refresh the invoices list
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    } catch (error) {
+      console.error("Error loading mock data:", error);
+    }
+  };
   
   // Filter invoices based on search
   const filteredInvoices = invoices.filter(invoice => 
@@ -48,12 +59,18 @@ const Invoices = () => {
               className="pl-10"
             />
           </div>
-          <Button asChild>
-            <Link to="/invoices/upload">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Invoice
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleLoadMockData}>
+              <Database className="mr-2 h-4 w-4" />
+              Load Mock Data
+            </Button>
+            <Button asChild>
+              <Link to="/invoices/upload">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Invoice
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (

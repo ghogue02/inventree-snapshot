@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { Invoice, InvoiceItem, InvoiceRecognitionResult } from "@/types/inventory";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,6 +242,71 @@ export const processInvoiceImage = async (imageFile: File): Promise<InvoiceRecog
     return invoiceResult;
   } catch (error) {
     console.error('Error in processInvoiceImage:', error);
+    throw error;
+  }
+};
+
+export const loadMockInvoices = async (): Promise<void> => {
+  try {
+    // Import mock invoices
+    const { mockInvoices } = await import('@/data/mockInvoices');
+    
+    // Process each invoice
+    for (const mockInvoice of mockInvoices) {
+      // First create the invoice
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          supplier_name: mockInvoice.supplier,
+          invoice_number: mockInvoice.invoiceNumber,
+          date: mockInvoice.date,
+          total: mockInvoice.total,
+          paid_status: 'paid',
+          image_url: null
+        })
+        .select()
+        .single();
+        
+      if (invoiceError) {
+        console.error('Error creating mock invoice:', invoiceError);
+        toast.error(`Failed to create invoice ${mockInvoice.invoiceNumber}`);
+        continue;
+      }
+      
+      const invoiceId = invoiceData.id;
+      
+      // Then create all invoice items
+      const itemsToInsert = mockInvoice.items.map(item => ({
+        invoice_id: invoiceId,
+        product_id: null, // We'll need to match products later
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        case_size: item.caseSize,
+        unit_price: item.pricePerUnit,
+        total: item.total,
+        category: item.category,
+        brand: item.brand,
+        notes: item.notes
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(itemsToInsert);
+        
+      if (itemsError) {
+        console.error('Error adding mock invoice items:', itemsError);
+        // Clean up the invoice if items failed
+        await supabase.from('invoices').delete().eq('id', invoiceId);
+        toast.error(`Failed to add items for invoice ${mockInvoice.invoiceNumber}`);
+        continue;
+      }
+    }
+    
+    toast.success("Mock invoices loaded successfully");
+  } catch (error) {
+    console.error('Error in loadMockInvoices:', error);
+    toast.error("Failed to load mock invoices");
     throw error;
   }
 };
