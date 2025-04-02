@@ -42,7 +42,7 @@ const RecognizedItemsList = ({
                       className="mb-1 w-full min-w-0 break-words"
                     />
                     <div className="text-sm text-gray-500">
-                      Size: {item.size || 'N/A'} | Count: {item.count} | 
+                      Size: {item.size && item.size !== 'N/A' ? item.size : 'Not specified'} | Count: {item.count} | 
                       Confidence: {Math.round(item.confidence * 100)}%
                     </div>
                     {existingProduct && (
