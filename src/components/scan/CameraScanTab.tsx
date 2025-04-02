@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
@@ -7,6 +6,7 @@ import AnalysisResults from "@/components/scan/AnalysisResults";
 import BatchScanResults from "@/components/scan/BatchScanResults";
 import ScanModeToggle from "./ScanModeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface CameraScanTabProps {
   capturedImage: string | null;
@@ -58,7 +58,7 @@ const CameraScanTab = ({
   return (
     <div className="space-y-4">
       <Card className={isMobile ? "overflow-hidden shadow-sm border-0 sm:border" : ""}>
-        <CardContent className={isMobile ? "p-0 sm:p-3" : "p-6 space-y-4"}>
+        <CardContent className={cn(isMobile ? "p-0 sm:p-3" : "p-6 space-y-4", "overflow-visible")}>
           <div className={`flex justify-between items-center ${isMobile ? 'p-3' : 'mb-4'}`}>
             <ScanModeToggle
               scanMode={scanMode}

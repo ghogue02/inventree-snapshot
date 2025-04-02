@@ -123,13 +123,15 @@ const CameraCapture = ({
         className={`video-container rounded-md overflow-hidden relative ${
           isFlashing ? 'bg-white' : 'bg-black'
         }`}
-        style={{ 
-          width: '100%', 
-          aspectRatio: isMobile ? '3/4' : '4/3',
-          minHeight: '350px',
-          maxHeight: isMobile ? 'calc(100vh - 240px)' : '600px', // Adjusted to ensure controls visibility
+        style={{
+          width: '100%', // Keep width
+          // Temporarily use fixed height for debugging
+          height: '500px',
+          // aspectRatio: isMobile ? '3/4' : '4/3', // Temporarily remove
+          // minHeight: '350px', // Temporarily remove
+          // maxHeight: isMobile ? 'calc(100vh - 220px)' : '600px', // Temporarily remove
           position: 'relative', // Ensure position is set for z-index
-          zIndex: 10 // Add z-index
+          zIndex: 1 // Lower z-index slightly, just in case controls need to be higher
         }}
       >
         {!capturedImage ? (
