@@ -18,6 +18,7 @@ const Scan = () => {
   const [tab, setTab] = useState("camera");
   const isMobile = useIsMobile();
   const [isSyncing, setIsSyncing] = useState(false);
+  const { isOnline } = useConnectivity();
   
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ["products"],
@@ -104,12 +105,11 @@ const Scan = () => {
     const pendingImages = useOfflineStore.getState().pendingImageRequests.filter(r => !r.processed).length;
     
     if (pendingCounts > 0 || pendingImages > 0) {
-      const { isOnline } = useConnectivity.getState();
       if (isOnline) {
         attemptAutoSync();
       }
     }
-  }, [refetchProducts]);
+  }, [isOnline, refetchProducts]);
 
   return (
     <Layout 
