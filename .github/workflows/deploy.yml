@@ -17,6 +17,8 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      DEBUG: vite:*
+      NODE_ENV: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,9 +32,27 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
+          npm list vite
 
-      - name: Build project
-        run: npm run build
+      - name: Debug Environment
+        run: |
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "Vite version: $(npm list vite)"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "Environment variables (safe):"
+          env | grep -v -i "key" | grep -v -i "token" | grep -v -i "secret"
+
+      - name: Build project with debug
+        run: |
+          echo "Starting build..."
+          npm run build --debug
+          echo "Build complete. Checking dist directory:"
+          ls -la dist/
+        env:
+          NODE_OPTIONS: "--trace-warnings"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
