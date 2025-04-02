@@ -12,9 +12,11 @@ import VideoUploader from "@/components/scan/VideoUploader";
 import AnalysisResults from "@/components/scan/AnalysisResults";
 import BatchScanResults from "@/components/scan/BatchScanResults";
 import { Camera, Scan as ScanIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
+  const isMobile = useIsMobile();
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
@@ -54,7 +56,7 @@ const Scan = () => {
       title="Scan Inventory" 
       description="Use your camera to automatically count inventory items"
     >
-      <div className="p-6">
+      <div className={`${isMobile ? 'p-2' : 'p-6'}`}>
         <Tabs defaultValue="camera" value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="camera">Camera Scan</TabsTrigger>
@@ -62,8 +64,8 @@ const Scan = () => {
           </TabsList>
           
           <TabsContent value="camera" className="space-y-4">
-            <Card>
-              <CardContent className="p-6 space-y-4">
+            <Card className={isMobile ? "overflow-hidden shadow-sm" : ""}>
+              <CardContent className={isMobile ? "p-3" : "p-6 space-y-4"}>
                 <div className="flex justify-center mb-4">
                   <ToggleGroup type="single" value={scanMode} onValueChange={(value) => value && setScanMode(value as 'single' | 'shelf')}>
                     <ToggleGroupItem value="single" className="flex items-center gap-1">
@@ -120,7 +122,7 @@ const Scan = () => {
 
           <TabsContent value="upload">
             <Card>
-              <CardContent className="p-6 space-y-4">
+              <CardContent className={isMobile ? "p-3" : "p-6 space-y-4"}>
                 <VideoUploader 
                   onVideoSelected={handleFileSelected}
                   isProcessing={isUploading} 

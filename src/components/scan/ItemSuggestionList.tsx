@@ -4,9 +4,10 @@ import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, Edit, Trash } from "lucide-react";
+import { Plus, Check, Edit, Trash, ChevronUp, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ItemSuggestionListProps {
   items: InventoryRecognitionResult[];
@@ -29,6 +30,7 @@ const ItemSuggestionList = ({
 }: ItemSuggestionListProps) => {
   const [addingItemIndex, setAddingItemIndex] = useState<number | null>(null);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const isMobile = useIsMobile();
   
   const handleAddToInventory = async (item: InventoryRecognitionResult, index: number) => {
     if (!onAddToInventory) return;
@@ -36,6 +38,10 @@ const ItemSuggestionList = ({
     setAddingItemIndex(index);
     try {
       await onAddToInventory(item);
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
     } finally {
       setAddingItemIndex(null);
     }
@@ -48,6 +54,11 @@ const ItemSuggestionList = ({
         ...item,
         count: newValue
       });
+      
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(30);
+      }
     }
   };
   
@@ -55,12 +66,21 @@ const ItemSuggestionList = ({
     setEditingItemIndex(null);
     toast.success("Item updated");
   };
+  
+  const handleSelectItem = (index: number) => {
+    onSelectItem(index);
+    
+    // Add haptic feedback if available
+    if (navigator.vibrate) {
+      navigator.vibrate(40);
+    }
+  };
 
   return (
     <div className="space-y-2">
       <h3 className="text-lg font-medium">Suggested Items</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Select an item to update its quantity
+        {isMobile ? "Tap an item to update its quantity" : "Select an item to update its quantity"}
       </p>
       
       <div className="grid gap-2">
@@ -74,9 +94,10 @@ const ItemSuggestionList = ({
               className={cn(
                 "border rounded-md p-3 transition-all",
                 isSelected ? "border-primary bg-primary/5" : "hover:bg-gray-50",
-                editingItemIndex === index ? "border-blue-500 bg-blue-50" : ""
+                editingItemIndex === index ? "border-blue-500 bg-blue-50" : "",
+                isMobile ? "text-base" : ""
               )}
-              onClick={() => onSelectItem(index)}
+              onClick={() => handleSelectItem(index)}
             >
               {editingItemIndex === index ? (
                 <div className="space-y-3">
@@ -144,22 +165,52 @@ const ItemSuggestionList = ({
                   
                   <div className="flex items-center gap-2">
                     {isSelected && (
-                      <div className="flex items-center border rounded-md overflow-hidden">
+                      <div 
+                        className="flex items-center border rounded-lg overflow-hidden shadow-sm" 
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button 
-                          className="px-2 py-1 bg-gray-100 hover:bg-gray-200"
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-lg font-medium"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (item.count > 0.5) handleQuantityChange(index, item.count - 0.5);
+                            if (item.count > 0.5) handleQuantityChange(index, Math.round((item.count - 0.5) * 10) / 10);
                           }}
                         >
-                          -
+                          −
                         </button>
-                        <span className="px-3 py-1 font-medium">{item.count}</span>
+                        <div className="relative">
+                          <span className="px-4 py-2 font-medium text-center block min-w-[3rem]">
+                            {item.count}
+                          </span>
+                          {isMobile && (
+                            <div className="absolute left-0 right-0 flex flex-col">
+                              <button 
+                                className="h-4 flex items-center justify-center opacity-70"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleQuantityChange(index, Math.round((item.count + 0.1) * 10) / 10);
+                                }}
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
+                              <button 
+                                className="h-4 flex items-center justify-center opacity-70"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (item.count > 0.1) 
+                                    handleQuantityChange(index, Math.round((item.count - 0.1) * 10) / 10);
+                                }}
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <button 
-                          className="px-2 py-1 bg-gray-100 hover:bg-gray-200"
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-lg font-medium"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleQuantityChange(index, item.count + 0.5);
+                            handleQuantityChange(index, Math.round((item.count + 0.5) * 10) / 10);
                           }}
                         >
                           +
@@ -178,7 +229,7 @@ const ItemSuggestionList = ({
                             e.stopPropagation();
                             handleAddToInventory(item, index);
                           }} 
-                          size="sm" 
+                          size={isMobile ? "default" : "sm"} 
                           variant="outline"
                           className={cn("text-green-600 border-green-600", 
                             "hover:bg-green-50 hover:text-green-700")}
@@ -202,7 +253,7 @@ const ItemSuggestionList = ({
                       )}
                       
                       <Button 
-                        size="sm" 
+                        size={isMobile ? "default" : "sm"} 
                         variant="ghost"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -213,7 +264,7 @@ const ItemSuggestionList = ({
                       </Button>
                       
                       <Button 
-                        size="sm" 
+                        size={isMobile ? "default" : "sm"} 
                         variant="ghost" 
                         className="text-destructive"
                         onClick={(e) => {
