@@ -164,16 +164,40 @@ export const loadMockProducts = async () => {
   try {
     toast.loading("Loading sample data...");
 
-    // Delete all existing products
-    const { error: deleteError } = await supabase
+    // First, delete all invoice items to handle foreign key constraints
+    const { error: deleteInvoiceItemsError } = await supabase
+      .from('invoice_items')
+      .delete()
+      .not('id', 'is', null);
+
+    if (deleteInvoiceItemsError) {
+      console.error('Error deleting invoice items:', deleteInvoiceItemsError);
+      toast.error("Failed to clear existing data");
+      throw deleteInvoiceItemsError;
+    }
+
+    // Then delete all invoices
+    const { error: deleteInvoicesError } = await supabase
+      .from('invoices')
+      .delete()
+      .not('id', 'is', null);
+
+    if (deleteInvoicesError) {
+      console.error('Error deleting invoices:', deleteInvoicesError);
+      toast.error("Failed to clear existing data");
+      throw deleteInvoicesError;
+    }
+
+    // Finally, delete all products
+    const { error: deleteProductsError } = await supabase
       .from('products')
       .delete()
-      .not('id', 'is', null); // This is safer than .neq('id', '')
+      .not('id', 'is', null);
 
-    if (deleteError) {
-      console.error('Error deleting existing products:', deleteError);
-      toast.error("Failed to clear existing products");
-      throw deleteError;
+    if (deleteProductsError) {
+      console.error('Error deleting products:', deleteProductsError);
+      toast.error("Failed to clear existing data");
+      throw deleteProductsError;
     }
 
     // Insert mock products

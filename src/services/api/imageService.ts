@@ -3,13 +3,34 @@ import { supabase } from "@/integrations/supabase/client";
 
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
+const getCategorySpecificPrompt = (productName: string, category: string): string => {
+  const basePrompt = "A professional, clean product photo";
+  
+  switch (category.toLowerCase()) {
+    case 'grains':
+      return `${basePrompt} of a box or package of ${productName}. Show the packaging clearly with the brand name visible. Style: Commercial product photography on white background.`;
+    case 'meat':
+      return `${basePrompt} of fresh, raw ${productName} on a clean white cutting board. Style: Food photography with soft lighting.`;
+    case 'produce':
+      return `${basePrompt} of fresh ${productName}, well-lit and arranged professionally. Style: Fresh produce photography on white background.`;
+    case 'pantry':
+      return `${basePrompt} of ${productName} in its retail packaging or container. Style: Commercial product photography on white background.`;
+    case 'beverages':
+      return `${basePrompt} of a single ${productName} container or bottle, showing the label clearly. Style: Beverage photography on white background.`;
+    default:
+      return `${basePrompt} of ${productName} for restaurant inventory. The image should be on a white background, well-lit, and show the product clearly. Category: ${category}. Style: Minimalist commercial product photography.`;
+  }
+};
+
 export const generateProductImage = async (productName: string, category: string): Promise<string | null> => {
   try {
     if (!OPENAI_API_KEY) {
+      toast.error("OpenAI API key is not configured");
       throw new Error('OpenAI API key is not configured');
     }
 
-    const prompt = `A professional, clean product photo of ${productName} for a restaurant inventory system. The image should be on a white background, well-lit, and show the product clearly. Category: ${category}. Style: Minimalist commercial product photography.`;
+    const prompt = getCategorySpecificPrompt(productName, category);
+    console.log('Generating image for:', productName, 'with prompt:', prompt);
     
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -72,7 +93,7 @@ export const generateProductImage = async (productName: string, category: string
     return url;
   } catch (error) {
     console.error('Error in generateProductImage:', error);
-    toast.error("Failed to generate product image");
+    toast.error(`Failed to generate image for ${productName}`);
     return null;
   }
 };
@@ -80,20 +101,34 @@ export const generateProductImage = async (productName: string, category: string
 export const generateAllProductImages = async (products: { name: string; category: string; }[]): Promise<void> => {
   try {
     toast.loading("Generating product images...");
+    let successCount = 0;
+    let failureCount = 0;
     
     for (const product of products) {
-      const imageUrl = await generateProductImage(product.name, product.category);
-      if (imageUrl) {
-        await supabase
-          .from('products')
-          .update({ image: imageUrl })
-          .eq('name', product.name);
+      try {
+        const imageUrl = await generateProductImage(product.name, product.category);
+        if (imageUrl) {
+          await supabase
+            .from('products')
+            .update({ image: imageUrl })
+            .eq('name', product.name);
+          successCount++;
+        } else {
+          failureCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to generate image for ${product.name}:`, error);
+        failureCount++;
       }
     }
 
-    toast.success("Product images generated successfully");
+    if (failureCount === 0) {
+      toast.success(`Successfully generated ${successCount} product images`);
+    } else {
+      toast.warning(`Generated ${successCount} images, failed to generate ${failureCount} images`);
+    }
   } catch (error) {
     console.error('Error generating all product images:', error);
-    toast.error("Failed to generate some product images");
+    toast.error("Failed to generate product images");
   }
 }; 
