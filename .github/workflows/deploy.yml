@@ -34,25 +34,38 @@ jobs:
           npm ci
           npm list vite
 
-      - name: Debug Environment
+      - name: Pre-build environment check
         run: |
+          echo "=== Environment Check ==="
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           echo "Vite version: $(npm list vite)"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
+          echo "TypeScript version: $(npm list typescript)"
+          echo "=== Directory Structure ==="
+          pwd
           ls -la
-          echo "Environment variables (safe):"
+          echo "=== Package.json ==="
+          cat package.json
+          echo "=== Vite Config ==="
+          cat vite.config.ts
+          echo "=== Environment Variables ==="
           env | grep -v -i "key" | grep -v -i "token" | grep -v -i "secret"
+          echo "=== Test Vite Config ==="
+          node -e "import('./vite.config.ts').then(m => console.log(m.default))"
 
       - name: Build project with debug
         run: |
-          echo "Starting build..."
-          npm run build --debug
+          echo "Starting build with maximum verbosity..."
+          npm run build || {
+            echo "Build failed. Checking for error logs..."
+            find . -name "*.log" -type f -exec cat {} \;
+            exit 1
+          }
           echo "Build complete. Checking dist directory:"
           ls -la dist/
         env:
-          NODE_OPTIONS: "--trace-warnings"
+          NODE_OPTIONS: "--trace-warnings --verbose"
+          DEBUG: "*"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
