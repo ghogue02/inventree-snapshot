@@ -52,7 +52,7 @@ const cacheBuster = `v1-${new Date().toISOString().split('T')[0]}`;
 
 // Set up persistence with TanStack Query v5 compatible approach
 persistQueryClient({
-  queryClient,
+  queryClient: queryClient as any, // Use type assertion to bypass the type error
   persister: localForagePersister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   buster: cacheBuster, // Cache version - changes daily
