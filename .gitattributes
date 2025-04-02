@@ -6,5 +6,5 @@
 *.css   text eol=lf
 *.html  text eol=lf
 
-dist/assets/*.js linguist-generated=true application/javascript
-dist/assets/*.css linguist-generated=true text/css 
+dist/assets/*.js linguist-generated=true
+dist/assets/*.css linguist-generated=true 
