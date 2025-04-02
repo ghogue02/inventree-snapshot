@@ -46,12 +46,16 @@ const queryClient = new QueryClient({
   },
 });
 
+// Generate a simple cache buster value that changes daily
+// This avoids using process.env which isn't available in the browser
+const cacheBuster = `v1-${new Date().toISOString().split('T')[0]}`;
+
 // Set up persistence with TanStack Query v5 compatible approach
 persistQueryClient({
   queryClient,
   persister: localForagePersister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-  buster: process.env.BUILD_ID || '1', // Cache version - change to invalidate cache
+  buster: cacheBuster, // Cache version - changes daily
 });
 
 interface QueryProviderProps {
