@@ -1,11 +1,6 @@
-import { useRef, useState } from "react";
-import { AlertTriangle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useCamera } from "./camera/useCamera";
-import CameraView from "./camera/CameraView";
-import CaptureControls from "./camera/CaptureControls";
-import CapturedImageView from "./camera/CapturedImageView";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 import { optimizeImage } from "@/utils/imageUtils";
 import { toast } from "sonner";
 
@@ -17,95 +12,46 @@ interface CameraCaptureProps {
   scanMode: 'single' | 'shelf';
 }
 
-const CameraCapture = ({ 
-  capturedImage, 
+const CameraCapture = ({
   onImageCaptured,
-  onResetCapture,
   isAnalyzing,
   scanMode
 }: CameraCaptureProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { 
-    videoRef, 
-    isCapturing, 
-    isLoading, 
-    cameraError, 
-    startCamera, 
-    stopCamera, 
-    toggleFlash,
-    triggerCaptureEffect,
-    isFlashing,
-    streamInitialized
-  } = useCamera();
-  const isMobile = useIsMobile();
   const [isOptimizing, setIsOptimizing] = useState(false);
 
-  const captureImage = async () => {
-    if (!videoRef.current || !canvasRef.current || !streamInitialized) {
-      console.error("Cannot capture - video or canvas not ready");
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
       return;
     }
-    
-    console.log("Capturing image");
-    
-    // Add haptic feedback if available
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
 
-    // Visual feedback
-    triggerCaptureEffect();
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    
     try {
-      // Get the actual video dimensions
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
-      
-      console.log(`Video dimensions: ${videoWidth}x${videoHeight}`);
-      
-      if (!videoWidth || !videoHeight) {
-        throw new Error("Video dimensions not available");
-      }
-      
-      // Set canvas size to match video
-      canvas.width = videoWidth;
-      canvas.height = videoHeight;
-      
-      const context = canvas.getContext('2d');
-      if (!context) {
-        throw new Error("Cannot get canvas context");
-      }
-      
-      // Draw the video frame to the canvas
-      context.save();
-      // Mirror the image horizontally if needed (since video is mirrored)
-      context.scale(-1, 1);
-      context.drawImage(video, -videoWidth, 0, videoWidth, videoHeight);
-      context.restore();
-      
-      const rawImageData = canvas.toDataURL("image/jpeg", 0.95);
-      console.log(`Raw capture size: ${Math.round(rawImageData.length / 1024)}KB`);
-      
-      if (rawImageData.length < 10000) {
-        throw new Error("Captured image is too small - camera may not be ready");
-      }
-      
-      // Optimize the image
       setIsOptimizing(true);
+
+      // Read the file
+      const reader = new FileReader();
+      const imageData = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Optimize the image
       const quality = scanMode === 'shelf' ? 0.9 : 0.95;
       const maxWidth = scanMode === 'shelf' ? 1800 : 1600;
-      
-      const optimizedImage = await optimizeImage(rawImageData, maxWidth, maxWidth, quality);
-      console.log(`Optimized size: ${Math.round(optimizedImage.length / 1024)}KB`);
-      
-      stopCamera();
+      console.log(`Optimizing image with quality ${quality} and max width ${maxWidth}`);
+
+      const optimizedImage = await optimizeImage(imageData, maxWidth, maxWidth, quality);
+      console.log(`Optimized image size: ${Math.round(optimizedImage.length / 1024)}KB`);
+
       onImageCaptured(optimizedImage);
     } catch (error) {
-      console.error("Capture error:", error);
-      toast.error("Failed to capture image. Please try again.");
+      console.error('Error processing image:', error);
+      toast.error('Failed to process image. Please try again.');
     } finally {
       setIsOptimizing(false);
     }
@@ -113,59 +59,43 @@ const CameraCapture = ({
 
   return (
     <div className="space-y-4">
-      {/* Camera viewport with fixed aspect ratio */}
-      <div className="relative w-full" style={{ aspectRatio: isMobile ? '3/4' : '4/3' }}>
-        <div className="absolute inset-0 bg-black rounded-lg overflow-hidden">
-          {!capturedImage ? (
-            <CameraView 
-              videoRef={videoRef}
-              isCapturing={isCapturing}
-              isLoading={isLoading || isOptimizing}
-              cameraError={cameraError}
-              scanMode={scanMode}
-              toggleFlash={toggleFlash}
-              onContainerTap={isMobile ? captureImage : undefined}
+      <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
+        <div className="absolute inset-0 bg-black/5 rounded-lg flex items-center justify-center">
+          <div className="text-center p-8">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="image-upload"
+              onChange={handleFileUpload}
+              disabled={isAnalyzing || isOptimizing}
             />
-          ) : (
-            <CapturedImageView 
-              capturedImage={capturedImage}
-              isAnalyzing={isAnalyzing}
-            />
-          )}
+            <label
+              htmlFor="image-upload"
+              className="cursor-pointer flex flex-col items-center gap-4"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Upload className="h-8 w-8 text-primary" />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-medium">Upload an Image</p>
+                <p className="text-sm text-muted-foreground">
+                  {scanMode === 'single' 
+                    ? 'Upload a photo of a single inventory item'
+                    : 'Upload a photo of multiple items on a shelf'}
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* Hidden canvas for image capture */}
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* Error display */}
-      {cameraError && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertDescription className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            {cameraError}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Controls */}
-      <div className="flex justify-center mt-4">
-        <CaptureControls 
-          isCapturing={isCapturing}
-          isLoading={isLoading || isOptimizing}
-          capturedImage={capturedImage}
-          cameraError={cameraError}
-          scanMode={scanMode}
-          onStartCamera={startCamera}
-          onCaptureImage={captureImage}
-        />
-      </div>
-      
-      {/* Mobile tap hint */}
-      {isMobile && isCapturing && !capturedImage && streamInitialized && (
-        <p className="text-center text-sm text-muted-foreground">
-          Tap the camera view to capture
-        </p>
+      {(isAnalyzing || isOptimizing) && (
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
+            {isOptimizing ? 'Processing image...' : 'Analyzing image...'}
+          </p>
+        </div>
       )}
     </div>
   );
