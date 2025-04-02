@@ -40,4 +40,5 @@ export default defineConfig({
       'Content-Type': 'application/javascript',
     },
   },
+  logLevel: 'error',
 });

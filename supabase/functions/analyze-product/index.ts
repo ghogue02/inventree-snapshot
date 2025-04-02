@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -25,7 +24,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured');
     }
 
-    console.log('Calling OpenAI Vision API for product analysis');
+    console.log('Processing product analysis request');
 
     // Ensure the image is properly formatted for OpenAI
     const imageUrl = imageBase64.startsWith('data:') 

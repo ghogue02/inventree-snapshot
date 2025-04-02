@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -21,6 +20,7 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
+    console.log('Processing inventory analysis request');
     console.log(`Processing file: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
 
     // Read the file as an array buffer
