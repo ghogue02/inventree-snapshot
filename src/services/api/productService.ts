@@ -162,6 +162,26 @@ export const updateProducts = async (products: Product[]): Promise<void> => {
 
 export const loadMockProducts = async () => {
   try {
+    toast.loading("Checking inventory data...");
+
+    // First, check if we already have products
+    const { data: existingProducts, error: checkError } = await supabase
+      .from('products')
+      .select('id')
+      .limit(1);
+
+    if (checkError) {
+      console.error('Error checking existing products:', checkError);
+      toast.error("Failed to check existing data");
+      throw checkError;
+    }
+
+    // If we already have products, don't reload mock data
+    if (existingProducts && existingProducts.length > 0) {
+      toast.success("Inventory data already loaded");
+      return;
+    }
+
     toast.loading("Loading sample data...");
 
     // First, delete all invoice items to handle foreign key constraints

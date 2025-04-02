@@ -12,17 +12,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
+  const [hasData, setHasData] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
-    queryKey: ["products"],
-    queryFn: getProducts
+    queryKey: ['products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('category', { ascending: true });
+      
+      if (error) throw error;
+      setHasData(data && data.length > 0);
+      return data || [];
+    }
   });
 
   const handleLoadMockData = async () => {
@@ -85,9 +96,13 @@ const Inventory = () => {
               <Image className="mr-2 h-4 w-4" />
               Generate Images
             </Button>
-            <Button onClick={handleLoadMockData} disabled={isLoading}>
+            <Button 
+              onClick={handleLoadMockData} 
+              disabled={isLoading || hasData}
+              variant={hasData ? "secondary" : "default"}
+            >
               <Database className="mr-2 h-4 w-4" />
-              Load Sample Data
+              {hasData ? "Sample Data Loaded" : "Load Sample Data"}
             </Button>
             <Button onClick={() => navigate("/add-product")}>
               <Plus className="mr-2 h-4 w-4" />
