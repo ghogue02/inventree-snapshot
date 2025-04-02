@@ -36,6 +36,10 @@ const Inventory = () => {
     }
   });
 
+  // Calculate if any products need images
+  const productsNeedingImages = products.filter(product => !product.image);
+  const allProductsHaveImages = products.length > 0 && productsNeedingImages.length === 0;
+
   const handleLoadMockData = async () => {
     setIsLoading(true);
     try {
@@ -92,9 +96,18 @@ const Inventory = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleGenerateImages} disabled={isGeneratingImages || products.length === 0}>
+            <Button 
+              onClick={handleGenerateImages} 
+              disabled={isGeneratingImages || products.length === 0 || allProductsHaveImages}
+              variant={allProductsHaveImages ? "secondary" : "default"}
+            >
               <Image className="mr-2 h-4 w-4" />
-              Generate Images
+              {allProductsHaveImages 
+                ? "All Images Generated" 
+                : productsNeedingImages.length > 0 
+                  ? `Generate ${productsNeedingImages.length} Images`
+                  : "Generate Images"
+              }
             </Button>
             <Button 
               onClick={handleLoadMockData} 

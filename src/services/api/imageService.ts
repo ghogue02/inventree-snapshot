@@ -115,7 +115,7 @@ export const generateProductImage = async (productName: string, category: string
   }
 };
 
-export const generateAllProductImages = async (products: { name: string; category: string; }[]): Promise<void> => {
+export const generateAllProductImages = async (products: { id: string; name: string; category: string; image: string | null; }[]): Promise<void> => {
   try {
     // Check API key before starting
     const apiKey = getOpenAIKey();
@@ -124,18 +124,26 @@ export const generateAllProductImages = async (products: { name: string; categor
       return;
     }
 
-    toast.loading("Generating product images...");
+    // Filter out products that already have images
+    const productsNeedingImages = products.filter(product => !product.image);
+    
+    if (productsNeedingImages.length === 0) {
+      toast.success("All products already have images");
+      return;
+    }
+
+    toast.loading(`Generating images for ${productsNeedingImages.length} products...`);
     let successCount = 0;
     let failureCount = 0;
     
-    for (const product of products) {
+    for (const product of productsNeedingImages) {
       try {
         const imageUrl = await generateProductImage(product.name, product.category);
         if (imageUrl) {
           const { error: updateError } = await supabase
             .from('products')
             .update({ image: imageUrl })
-            .eq('name', product.name);
+            .eq('id', product.id);
 
           if (updateError) {
             console.error(`Failed to update product ${product.name} with image:`, updateError);
