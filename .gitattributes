@@ -1,0 +1,10 @@
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+
+dist/assets/*.js linguist-generated=true application/javascript
+dist/assets/*.css linguist-generated=true text/css 

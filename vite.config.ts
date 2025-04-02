@@ -4,9 +4,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   base: '/inventree-snapshot/',
   resolve: {
     alias: {
@@ -61,5 +59,14 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
     },
   },
-  logLevel: 'error',
+  preview: {
+    headers: {
+      'Content-Type': 'application/javascript',
+      'X-Content-Type-Options': 'nosniff',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  logLevel: 'info',
 });
+

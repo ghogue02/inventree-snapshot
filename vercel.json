@@ -1,31 +1,37 @@
 {
   "headers": [
     {
-      "source": "/(.*).js",
+      "source": "/(.*)",
       "headers": [
         {
-          "key": "Content-Type",
-          "value": "text/javascript"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         }
       ]
     },
     {
-      "source": "/(.*).mjs",
+      "source": "/assets/(.*)\\.js",
       "headers": [
         {
           "key": "Content-Type",
-          "value": "text/javascript"
+          "value": "application/javascript"
         }
       ]
     },
     {
-      "source": "/(.*).js.map",
+      "source": "/assets/(.*)\\.css",
       "headers": [
         {
           "key": "Content-Type",
-          "value": "application/json"
+          "value": "text/css"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 } 
