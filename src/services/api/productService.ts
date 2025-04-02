@@ -110,9 +110,21 @@ export const deleteProduct = async (id: string): Promise<void> => {
 
 export const loadMockProducts = async (): Promise<void> => {
   try {
+    // Map the mock products to database format
+    const productsToInsert = mockProducts.map(product => ({
+      name: product.name,
+      category: product.category,
+      unit: product.unit,
+      current_stock: product.currentStock,
+      reorder_point: product.reorderPoint,
+      cost: product.cost,
+      image: product.image
+    }));
+
+    // Insert the products
     const { error } = await supabase
       .from('products')
-      .insert(mockProducts.map(mapProductToDatabase));
+      .insert(productsToInsert);
       
     if (error) {
       console.error('Error loading mock products:', error);

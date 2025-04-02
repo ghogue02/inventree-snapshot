@@ -1,213 +1,121 @@
-export interface InvoiceItem {
-  name: string;
-  quantity: number;
-  pricePerUnit: number;
-  total: number;
-}
-
-export interface Invoice {
-  id: string;
-  supplier: string;
-  invoiceNumber: string;
-  date: string;
-  total: number;
-  items: InvoiceItem[];
-}
+import { Invoice, InvoiceItem } from "@/types/inventory";
 
 export const mockInvoices: Invoice[] = [
   {
     id: "INV-001",
-    date: "2024-03-15",
-    supplier: "Sysco Food Services",
-    invoiceNumber: "SYS-2024-001",
+    date: "2024-03-18",
+    supplier: "Restaurant Depot",
+    invoiceNumber: "RD-2024-1842",
     items: [
       {
-        name: "Ground Beef",
-        quantity: 4,
-        pricePerUnit: 89.99,
-        total: 359.96
+        name: "McCann's Quick Cooking Irish Oatmeal",
+        quantity: 10,
+        pricePerUnit: 4.25,
+        total: 42.50
       },
       {
-        name: "Chicken Breast",
-        quantity: 3,
-        pricePerUnit: 159.99,
-        total: 479.97
-      },
-      {
-        name: "Fresh Tomatoes",
-        quantity: 2,
-        pricePerUnit: 49.99,
-        total: 99.98
+        name: "Jasmine Rice",
+        quantity: 50,
+        pricePerUnit: 2.75,
+        total: 137.50
       },
       {
         name: "All-Purpose Flour",
-        quantity: 5,
-        pricePerUnit: 29.99,
-        total: 149.95
-      },
-      {
-        name: "Cooking Oil",
-        quantity: 2,
-        pricePerUnit: 79.99,
-        total: 159.98
+        quantity: 40,
+        pricePerUnit: 1.85,
+        total: 74.00
       }
     ],
-    total: 1249.84
+    total: 254.00
   },
   {
     id: "INV-002",
-    date: "2024-03-16",
-    supplier: "US Foods",
-    invoiceNumber: "USF-2024-002",
+    date: "2024-03-19",
+    supplier: "Premium Meats Co.",
+    invoiceNumber: "PMC-2024-0456",
     items: [
       {
-        name: "Salmon Fillet",
-        quantity: 2,
-        pricePerUnit: 199.99,
-        total: 399.98
+        name: "Ground Beef",
+        quantity: 15,
+        pricePerUnit: 5.75,
+        total: 86.25
       },
       {
-        name: "Mixed Greens",
-        quantity: 3,
-        pricePerUnit: 39.99,
-        total: 119.97
-      },
-      {
-        name: "Pasta",
-        quantity: 4,
-        pricePerUnit: 45.99,
-        total: 183.96
-      },
-      {
-        name: "Wine",
-        quantity: 6,
-        pricePerUnit: 159.99,
-        total: 959.94
-      },
-      {
-        name: "Dish Soap",
-        quantity: 2,
-        pricePerUnit: 89.99,
-        total: 179.98
+        name: "Chicken Breast",
+        quantity: 30,
+        pricePerUnit: 4.75,
+        total: 142.50
       }
     ],
-    total: 1843.83
+    total: 228.75
   },
   {
     id: "INV-003",
-    date: "2024-03-17",
-    supplier: "Gordon Food Service",
-    invoiceNumber: "GFS-2024-003",
+    date: "2024-03-20",
+    supplier: "Fresh Produce Direct",
+    invoiceNumber: "FPD-2024-789",
     items: [
       {
-        name: "Beef Tenderloin",
-        quantity: 1,
-        pricePerUnit: 299.99,
-        total: 299.99
-      },
-      {
-        name: "Fresh Vegetables",
-        quantity: 3,
-        pricePerUnit: 69.99,
-        total: 209.97
-      },
-      {
-        name: "Rice",
-        quantity: 3,
-        pricePerUnit: 49.99,
-        total: 149.97
-      },
-      {
-        name: "Paper Towels",
-        quantity: 4,
-        pricePerUnit: 39.99,
-        total: 159.96
-      },
-      {
-        name: "Hand Soap",
-        quantity: 2,
-        pricePerUnit: 79.99,
-        total: 159.98
-      }
-    ],
-    total: 979.87
-  },
-  {
-    id: "INV-004",
-    date: "2024-03-18",
-    supplier: "Performance Food Group",
-    invoiceNumber: "PFG-2024-004",
-    items: [
-      {
-        name: "Shrimp",
-        quantity: 2,
-        pricePerUnit: 149.99,
-        total: 299.98
+        name: "Fresh Tomatoes",
+        quantity: 20,
+        pricePerUnit: 2.85,
+        total: 57.00
       },
       {
         name: "Fresh Herbs",
-        quantity: 1,
-        pricePerUnit: 89.99,
-        total: 89.99
-      },
+        quantity: 10,
+        pricePerUnit: 1.85,
+        total: 18.50
+      }
+    ],
+    total: 75.50
+  },
+  {
+    id: "INV-004",
+    date: "2024-03-21",
+    supplier: "Pantry Essentials",
+    invoiceNumber: "PE-2024-2341",
+    items: [
       {
         name: "Olive Oil",
-        quantity: 2,
-        pricePerUnit: 129.99,
-        total: 259.98
-      },
-      {
-        name: "Beer",
         quantity: 8,
-        pricePerUnit: 49.99,
-        total: 399.92
+        pricePerUnit: 15.50,
+        total: 124.00
       },
       {
         name: "To-Go Containers",
         quantity: 3,
-        pricePerUnit: 79.99,
-        total: 239.97
+        pricePerUnit: 24.50,
+        total: 73.50
+      },
+      {
+        name: "Paper Napkins",
+        quantity: 5,
+        pricePerUnit: 18.50,
+        total: 92.50
       }
     ],
-    total: 1289.84
+    total: 290.00
   },
   {
     id: "INV-005",
-    date: "2024-03-19",
-    supplier: "Ben E. Keith Foods",
-    invoiceNumber: "BEK-2024-005",
+    date: "2024-03-22",
+    supplier: "Beverage Supply Co.",
+    invoiceNumber: "BSC-2024-567",
     items: [
       {
-        name: "Pork Tenderloin",
-        quantity: 3,
-        pricePerUnit: 129.99,
-        total: 389.97
-      },
-      {
-        name: "Fresh Fruit",
-        quantity: 2,
-        pricePerUnit: 89.99,
-        total: 179.98
-      },
-      {
-        name: "Sugar",
-        quantity: 2,
-        pricePerUnit: 59.99,
-        total: 119.98
-      },
-      {
-        name: "Soft Drinks",
+        name: "Vintage Seltzer Original",
         quantity: 5,
-        pricePerUnit: 29.99,
-        total: 149.95
+        pricePerUnit: 12.50,
+        total: 62.50
       },
       {
-        name: "Napkins",
-        quantity: 4,
-        pricePerUnit: 49.99,
-        total: 199.96
+        name: "Fresh Coffee Beans",
+        quantity: 25,
+        pricePerUnit: 14.75,
+        total: 368.75
       }
     ],
-    total: 1039.84
+    total: 431.25
   }
 ]; 
