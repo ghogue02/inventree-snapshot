@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Camera, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+import { Camera, Loader2, RefreshCw, AlertTriangle, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,6 +23,7 @@ const CameraCapture = ({
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
 
   useEffect(() => {
     return () => {
@@ -63,6 +64,8 @@ const CameraCapture = ({
         errorMessage = "Camera access was aborted. Please try again.";
       } else if (error.name === "NotReadableError") {
         errorMessage = "Camera is in use by another application.";
+      } else if (error.message?.includes("Requested device not found")) {
+        errorMessage = "Camera device not found. Please make sure your device has a working camera.";
       }
       
       setCameraError(errorMessage);
@@ -100,7 +103,34 @@ const CameraCapture = ({
 
   return (
     <div className="space-y-4">
-      <div className="video-container bg-gray-100 rounded-md min-h-[200px] flex items-center justify-center relative">
+      <div className="flex justify-center mb-2">
+        <div className="inline-flex rounded-md shadow-sm" role="group">
+          <button
+            type="button"
+            onClick={() => setScanMode('single')}
+            className={`px-4 py-2 text-sm font-medium ${
+              scanMode === 'single' 
+                ? 'bg-primary text-white' 
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            } border border-gray-200 rounded-l-lg`}
+          >
+            Single Item
+          </button>
+          <button
+            type="button"
+            onClick={() => setScanMode('shelf')}
+            className={`px-4 py-2 text-sm font-medium ${
+              scanMode === 'shelf' 
+                ? 'bg-primary text-white' 
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            } border border-gray-200 rounded-r-lg`}
+          >
+            Shelf Scan
+          </button>
+        </div>
+      </div>
+      
+      <div className="video-container bg-gray-100 rounded-md min-h-[280px] flex items-center justify-center relative">
         {!capturedImage ? (
           <>
             {cameraError ? (
@@ -124,8 +154,16 @@ const CameraCapture = ({
             )}
             {!isCapturing && !cameraError && (
               <div className="text-center p-4">
-                <p className="text-muted-foreground mb-2">Click the button below to start camera</p>
-                <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground mb-2">
+                  {scanMode === 'single' 
+                    ? 'Capture a single inventory item' 
+                    : 'Scan multiple items on a shelf'}
+                </p>
+                {scanMode === 'single' ? (
+                  <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
+                ) : (
+                  <Scan className="mx-auto h-12 w-12 text-muted-foreground" />
+                )}
               </div>
             )}
           </>
@@ -170,8 +208,17 @@ const CameraCapture = ({
 
         {isCapturing && !capturedImage && (
           <Button onClick={captureImage}>
-            <Camera className="mr-2 h-4 w-4" />
-            Capture Image
+            {scanMode === 'shelf' ? (
+              <>
+                <Scan className="mr-2 h-4 w-4" />
+                Scan Shelf
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-4 w-4" />
+                Capture Item
+              </>
+            )}
           </Button>
         )}
 

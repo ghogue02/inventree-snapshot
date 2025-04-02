@@ -35,6 +35,32 @@ export const analyzeImageWithOpenAI = async (imageBase64: string, prompt: string
   }
 };
 
+// New function to analyze shelf images with batch item detection
+export const analyzeShelfImage = async (imageBase64: string): Promise<{items: InventoryRecognitionResult[]}> => {
+  try {
+    console.log('Sending shelf image for batch analysis...');
+    
+    const response = await supabase.functions.invoke('batch-scan-analysis', {
+      body: { 
+        imageBase64
+      }
+    });
+    
+    // Handle different response scenarios
+    if (response.error) {
+      console.error('Error analyzing shelf image:', response.error);
+      throw new Error(response.error.message || 'Failed to analyze shelf image');
+    }
+    
+    console.log('Batch image analysis successful:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error analyzing shelf image:", error);
+    toast.error("Failed to analyze shelf items. Please try again.");
+    throw new Error("Failed to analyze shelf image");
+  }
+};
+
 // Helper function to debug inventory counts before saving
 export const debugInventoryCounts = (counts: any[]) => {
   console.log('Inventory counts to save:', JSON.stringify(counts, null, 2));

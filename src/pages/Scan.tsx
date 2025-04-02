@@ -5,13 +5,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
-import { useScanAnalysis } from "@/hooks/useScanAnalysis";
+import useScanAnalysis from "@/hooks/useScanAnalysis";
 import CameraCapture from "@/components/scan/CameraCapture";
 import VideoUploader from "@/components/scan/VideoUploader";
 import AnalysisResults from "@/components/scan/AnalysisResults";
+import BatchScanResults from "@/components/scan/BatchScanResults";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
+  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
@@ -25,6 +27,8 @@ const Scan = () => {
     analysisResult,
     recognizedItems,
     isUploading,
+    selectedItemIndex,
+    selectItem,
     resetCapture,
     analyzeImage,
     processVideo,
@@ -57,6 +61,33 @@ const Scan = () => {
           <TabsContent value="camera" className="space-y-4">
             <Card>
               <CardContent className="p-6 space-y-4">
+                <div className="flex justify-center mb-4">
+                  <div className="inline-flex rounded-md shadow-sm" role="group">
+                    <button
+                      type="button"
+                      onClick={() => setScanMode('single')}
+                      className={`px-4 py-2 text-sm font-medium ${
+                        scanMode === 'single' 
+                          ? 'bg-primary text-white' 
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      } border border-gray-200 rounded-l-lg`}
+                    >
+                      Single Item
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScanMode('shelf')}
+                      className={`px-4 py-2 text-sm font-medium ${
+                        scanMode === 'shelf' 
+                          ? 'bg-primary text-white' 
+                          : 'bg-white text-gray-700 hover:bg-gray-50'
+                      } border border-gray-200 rounded-r-lg`}
+                    >
+                      Shelf Scan
+                    </button>
+                  </div>
+                </div>
+                
                 <CameraCapture 
                   capturedImage={capturedImage}
                   onImageCaptured={handleImageCaptured}
@@ -66,19 +97,34 @@ const Scan = () => {
               </CardContent>
             </Card>
 
-            {analysisResult && (
-              <AnalysisResults 
-                analysisResult={analysisResult}
-                recognizedItems={recognizedItems}
-                products={products}
-                onSaveInventoryCounts={saveInventoryCounts}
-                onGoToAddProduct={goToAddProduct}
-                onResetCapture={resetCapture}
-                onUpdateItem={updateRecognizedItem}
-                onRemoveItem={removeRecognizedItem}
-                onAddToInventory={addToInventory}
-                checkIfItemExists={checkIfItemExists}
-              />
+            {analysisResult && recognizedItems.length > 0 && (
+              scanMode === 'shelf' ? (
+                <BatchScanResults
+                  analysisResult={analysisResult}
+                  recognizedItems={recognizedItems}
+                  products={products}
+                  onSaveInventoryCounts={saveInventoryCounts}
+                  onGoToAddProduct={goToAddProduct}
+                  onResetCapture={resetCapture}
+                  onUpdateItem={updateRecognizedItem}
+                  onRemoveItem={removeRecognizedItem}
+                  onAddToInventory={addToInventory}
+                  checkIfItemExists={checkIfItemExists}
+                />
+              ) : (
+                <AnalysisResults 
+                  analysisResult={analysisResult}
+                  recognizedItems={recognizedItems}
+                  products={products}
+                  onSaveInventoryCounts={saveInventoryCounts}
+                  onGoToAddProduct={goToAddProduct}
+                  onResetCapture={resetCapture}
+                  onUpdateItem={updateRecognizedItem}
+                  onRemoveItem={removeRecognizedItem}
+                  onAddToInventory={addToInventory}
+                  checkIfItemExists={checkIfItemExists}
+                />
+              )
             )}
           </TabsContent>
 
@@ -92,7 +138,7 @@ const Scan = () => {
                 />
 
                 {recognizedItems.length > 0 && (
-                  <AnalysisResults 
+                  <BatchScanResults
                     analysisResult={analysisResult || ""}
                     recognizedItems={recognizedItems}
                     products={products}

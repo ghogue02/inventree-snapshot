@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI, processInventoryVideo, addInventoryCounts, addProduct } from "@/services/apiService";
+import { analyzeImageWithOpenAI, analyzeShelfImage, addInventoryCounts, addProduct } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
 
 export const useScanAnalysis = (products: Product[]) => {
@@ -13,6 +13,8 @@ export const useScanAnalysis = (products: Product[]) => {
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
   const analyzeImage = async (imageData?: string) => {
     const imageToAnalyze = imageData || capturedImage;
@@ -22,21 +24,42 @@ export const useScanAnalysis = (products: Product[]) => {
     setIsAnalyzing(true);
     
     try {
-      const base64Data = imageToAnalyze.split(",")[1];
-      
       toast.loading("Analyzing image...");
       
-      const result = await analyzeImageWithOpenAI(
-        imageToAnalyze,
-        "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
-      );
+      if (scanMode === 'shelf') {
+        // Process as batch shelf analysis
+        const result = await analyzeShelfImage(imageToAnalyze);
+        
+        if (result && result.items) {
+          // Match products against inventory
+          const enhancedItems = result.items.map(item => {
+            const matchedProduct = checkIfItemExists(item.name);
+            return {
+              ...item,
+              productId: matchedProduct?.id || "",
+              confidence: item.confidence || 0.9,
+              count: item.count || 1
+            };
+          });
+          
+          setRecognizedItems(enhancedItems);
+          setAnalysisResult("Shelf analysis complete. Here are the detected items:");
+        }
+      } else {
+        // Process as single item analysis
+        const result = await analyzeImageWithOpenAI(
+          imageToAnalyze,
+          "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
+        );
+        
+        setAnalysisResult(result);
+        
+        const recognizedItems = extractItemsFromAnalysis(result, products);
+        setRecognizedItems(recognizedItems);
+      }
       
-      setAnalysisResult(result);
       toast.dismiss();
       toast.success("Analysis complete");
-      
-      const recognizedItems = extractItemsFromAnalysis(result, products);
-      setRecognizedItems(recognizedItems);
       
     } catch (error) {
       console.error("Error analyzing image:", error);
@@ -195,6 +218,7 @@ export const useScanAnalysis = (products: Product[]) => {
     setCapturedImage(null);
     setAnalysisResult(null);
     setRecognizedItems([]);
+    setSelectedItemIndex(null);
   };
 
   const goToAddProduct = () => {
@@ -253,6 +277,10 @@ export const useScanAnalysis = (products: Product[]) => {
     }
   };
 
+  const selectItem = (index: number) => {
+    setSelectedItemIndex(index);
+  };
+
   return {
     capturedImage,
     setCapturedImage,
@@ -260,6 +288,10 @@ export const useScanAnalysis = (products: Product[]) => {
     analysisResult,
     recognizedItems,
     isUploading,
+    scanMode,
+    setScanMode,
+    selectedItemIndex,
+    selectItem,
     resetCapture,
     analyzeImage,
     processVideo,
@@ -272,3 +304,5 @@ export const useScanAnalysis = (products: Product[]) => {
     addToInventory
   };
 };
+
+export default useScanAnalysis;
