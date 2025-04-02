@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,19 +77,6 @@ const Scan = () => {
   };
   
   useEffect(() => {
-    if (isMobile && tab === "camera") {
-      // Set body overflow to hidden when camera is active on mobile
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isMobile, tab]);
-  
-  useEffect(() => {
     const attemptAutoSync = async () => {
       try {
         await syncPendingData();
@@ -100,7 +86,6 @@ const Scan = () => {
       }
     };
     
-    // Check for pending items in offline store
     const pendingCounts = useOfflineStore.getState().pendingInventoryCounts.filter(c => !c.synced).length;
     const pendingImages = useOfflineStore.getState().pendingImageRequests.filter(r => !r.processed).length;
     

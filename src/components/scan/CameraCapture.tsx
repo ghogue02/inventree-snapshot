@@ -101,10 +101,11 @@ const CameraCapture = ({
       
       stopCamera();
       onImageCaptured(optimizedImage);
-      setIsOptimizing(false);
+      // Removed redundant setIsOptimizing(false) as it's handled in finally
     } catch (error) {
       console.error("Error capturing image:", error);
       toast.error("Failed to capture image. Please try again.");
+    } finally {
       setIsOptimizing(false);
     }
   };
@@ -127,7 +128,7 @@ const CameraCapture = ({
           width: '100%', 
           aspectRatio: isMobile ? '3/4' : '4/3',
           minHeight: '350px',
-          maxHeight: isMobile ? 'calc(100vh - 220px)' : '600px' // Reduced height to ensure controls visibility
+          maxHeight: isMobile ? 'calc(100vh - 240px)' : '600px' // Adjusted to ensure controls visibility
         }}
       >
         {!capturedImage ? (
@@ -158,7 +159,8 @@ const CameraCapture = ({
         </Alert>
       )}
 
-      <div className="flex justify-center sticky bottom-1 z-20 pb-2">
+      {/* Controls container with better positioning */}
+      <div className="flex justify-center z-20 pb-2 mt-2">
         <CaptureControls 
           isCapturing={isCapturing}
           isLoading={isLoading || isOptimizing}
@@ -171,7 +173,7 @@ const CameraCapture = ({
       </div>
       
       {isMobile && isCapturing && !capturedImage && streamInitialized && (
-        <p className="text-center text-sm text-muted-foreground mt-2">
+        <p className="text-center text-sm text-muted-foreground mt-1">
           Tap anywhere on the image to capture
         </p>
       )}
