@@ -10,15 +10,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    server: {
-      host: "::",
-      port: 8080,
-    },
+    base: '/inventree-snapshot/',
     plugins: [
       react(),
       mode === 'development' && componentTagger(),
     ].filter(Boolean),
-    base: '/inventree-snapshot/',
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -27,23 +23,22 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: true,
-      assetsDir: 'assets',
       rollupOptions: {
         output: {
           manualChunks: {
             react: ['react', 'react-dom'],
             supabase: ['@supabase/supabase-js'],
           },
-          assetFileNames: 'assets/[name].[hash].[ext]',
-          chunkFileNames: 'assets/[name].[hash].js',
-          entryFileNames: 'assets/[name].[hash].js',
         },
       },
     },
     define: {
-      // Pass environment variables to the client
-      'process.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
-    }
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+    },
+    server: {
+      host: "::",
+      port: 8080,
+    },
   };
 });
