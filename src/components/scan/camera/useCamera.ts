@@ -22,6 +22,8 @@ export function useCamera() {
 
   const startCamera = async () => {
     try {
+      // Ensure cleanup from previous attempts
+      stopCamera();
       setCameraError(null);
       setIsLoading(true);
       
@@ -45,41 +47,62 @@ export function useCamera() {
         videoRef.current.srcObject = stream;
         mediaStreamRef.current = stream;
         
-        // Make sure video is playing before considering it loaded
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            console.log("Video metadata loaded, starting playback");
+        // Use a promise to handle video playing or error
+        try {
+          await new Promise<void>((resolve, reject) => {
+            if (!videoRef.current) {
+              reject(new Error("Video element became null"));
+              return;
+            }
+
+            const timeout = setTimeout(() => {
+              // Safety timeout in case events don't fire
+              console.log("Camera initialization timeout - proceeding anyway");
+              setIsCapturing(true);
+              setIsLoading(false);
+              setStreamInitialized(true);
+              resolve();
+            }, 5000);
             
-            // Set stream initialized flag
-            setStreamInitialized(true);
-            
-            videoRef.current.play()
-              .then(() => {
-                setIsCapturing(true);
-                setIsLoading(false);
-                // Initialize flash in off state
-                initializeFlash(stream, false);
-                
-                // Log the actual video dimensions for debugging
-                console.log("Video dimensions:", {
-                  videoWidth: videoRef.current?.videoWidth,
-                  videoHeight: videoRef.current?.videoHeight
-                });
-              })
-              .catch(error => {
-                console.error("Error playing video:", error);
-                setCameraError("Failed to start camera stream");
-                setIsLoading(false);
+            // Event listener for when the video starts playing
+            videoRef.current.onplaying = () => {
+              clearTimeout(timeout);
+              console.log("Video is playing");
+              setIsCapturing(true);
+              setIsLoading(false);
+              setStreamInitialized(true);
+              initializeFlash(stream, false);
+              
+              console.log("Video dimensions:", {
+                videoWidth: videoRef.current?.videoWidth,
+                videoHeight: videoRef.current?.videoHeight
               });
-          }
-        };
-        
-        // Add error handler for video element
-        videoRef.current.onerror = () => {
-          console.error("Video element error");
-          setCameraError("Camera error: Failed to initialize video element");
-          setIsLoading(false);
-        };
+              resolve();
+            };
+            
+            // Event listener for metadata loaded
+            videoRef.current.onloadedmetadata = () => {
+              console.log("Video metadata loaded, starting playback");
+              videoRef.current?.play().catch(error => {
+                console.error("Error playing video after metadata loaded:", error);
+                reject(error);
+              });
+            };
+
+            // Event listener for errors during video loading/playback
+            videoRef.current.onerror = (e) => {
+              clearTimeout(timeout);
+              console.error("Video element error:", e);
+              reject(new Error("Failed to load video stream"));
+            };
+          });
+          
+        } catch (error) {
+          console.error("Error in video initialization:", error);
+          throw new Error("Failed to initialize video stream: " + (error instanceof Error ? error.message : "unknown error"));
+        }
+      } else {
+        throw new Error("Video element not available");
       }
     } catch (error: any) {
       console.error("Error starting camera:", error);
@@ -114,6 +137,9 @@ export function useCamera() {
       // Make sure to clear the video source when stopping
       if (videoRef.current) {
         videoRef.current.srcObject = null;
+        videoRef.current.onplaying = null;
+        videoRef.current.onloadedmetadata = null;
+        videoRef.current.onerror = null;
       }
     }
   };
@@ -126,7 +152,11 @@ export function useCamera() {
     }, 100); // Quick 100ms flash
   };
 
-  const handleToggleFlash = () => {
+  const handleToggleFlash = (e: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     toggleFlash(mediaStreamRef.current);
   };
 

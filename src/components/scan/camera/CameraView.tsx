@@ -70,7 +70,7 @@ const CameraView = ({
     >
       {/* Loading overlay with improved styling */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/30 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/70 backdrop-blur-sm">
           <div className="bg-white/95 px-6 py-3 rounded-lg shadow-md flex items-center gap-2">
             <Loader2 className="animate-spin h-5 w-5 text-primary" />
             <span className="font-medium">Accessing camera...</span>
@@ -123,10 +123,7 @@ const CameraView = ({
 
       {isCapturing && (
         <div className="absolute bottom-4 left-4">
-          <FlashButton onClick={(e) => {
-            e.stopPropagation();
-            toggleFlash(e);
-          }} />
+          <FlashButton onClick={toggleFlash} />
         </div>
       )}
     </div>

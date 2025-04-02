@@ -60,32 +60,33 @@ const CameraCapture = ({
     
     try {
       // Set canvas size to match the actual video dimensions, not the element size
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
+      const videoWidth = video.videoWidth || 1280;
+      const videoHeight = video.videoHeight || 720;
       
       console.log(`Capturing from video of size ${videoWidth}x${videoHeight}`);
-      
-      if (!videoWidth || !videoHeight) {
-        throw new Error("Cannot get video dimensions");
-      }
       
       canvas.width = videoWidth;
       canvas.height = videoHeight;
       
-      const context = canvas.getContext("2d");
+      const context = canvas.getContext('2d');
       if (!context) {
         throw new Error("Cannot get canvas context");
       }
       
       // Clear the canvas first
-      context.fillStyle = 'rgb(0, 0, 0)';
+      context.fillStyle = '#000000';
       context.fillRect(0, 0, canvas.width, canvas.height);
       
       // Draw the video frame to the canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      const rawImageData = canvas.toDataURL("image/jpeg", 0.95); // Using higher quality for initial capture
+      const rawImageData = canvas.toDataURL("image/jpeg", 0.95);
       console.log(`Raw image captured with size: ${Math.round(rawImageData.length / 1024)}KB`);
+      
+      if (rawImageData.length < 10000) {
+        console.error("Image data is too small, likely an empty or failed capture");
+        throw new Error("Failed to capture image - camera may not be fully initialized");
+      }
       
       // Optimize the image before passing it up
       setIsOptimizing(true);
@@ -100,6 +101,7 @@ const CameraCapture = ({
       
       stopCamera();
       onImageCaptured(optimizedImage);
+      setIsOptimizing(false);
     } catch (error) {
       console.error("Error capturing image:", error);
       toast.error("Failed to capture image. Please try again.");
@@ -109,22 +111,23 @@ const CameraCapture = ({
 
   const handleContainerTap = () => {
     // Only capture on tap if we're actively capturing and on mobile
-    if (isCapturing && isMobile) {
+    if (isCapturing && isMobile && streamInitialized) {
       captureImage();
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
       <div 
         ref={videoContainerRef}
-        className={`video-container bg-gray-800 rounded-md overflow-hidden relative ${
-          isCapturing && isMobile ? 'fullscreen min-h-[75vh]' : 'min-h-[350px]'
-        } ${isFlashing ? 'bg-white' : ''}`}
+        className={`video-container bg-black rounded-md overflow-hidden relative ${
+          isFlashing ? 'bg-white' : ''
+        }`}
         style={{ 
           width: '100%', 
           aspectRatio: isMobile ? '3/4' : '4/3',
-          maxHeight: isMobile ? 'calc(100vh - 250px)' : '600px'
+          minHeight: '350px',
+          maxHeight: isMobile ? 'calc(100vh - 220px)' : '600px' // Reduced height to ensure controls visibility
         }}
       >
         {!capturedImage ? (
@@ -155,7 +158,7 @@ const CameraCapture = ({
         </Alert>
       )}
 
-      <div className="flex justify-center">
+      <div className="flex justify-center sticky bottom-1 z-20 pb-2">
         <CaptureControls 
           isCapturing={isCapturing}
           isLoading={isLoading || isOptimizing}
@@ -167,7 +170,7 @@ const CameraCapture = ({
         />
       </div>
       
-      {isMobile && isCapturing && !capturedImage && (
+      {isMobile && isCapturing && !capturedImage && streamInitialized && (
         <p className="text-center text-sm text-muted-foreground mt-2">
           Tap anywhere on the image to capture
         </p>
