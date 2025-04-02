@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/inventory";
-import { Search, Plus, Trash2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getProducts } from "@/services/apiService";
+import { Search, Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getProducts, updateProduct, deleteProduct } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,18 +105,183 @@ const Inventory = () => {
   );
 };
 
+const PRODUCT_CATEGORIES = [
+  'Grains', 'Dairy', 'Vegetables', 'Fruits', 'Meat', 'Seafood', 
+  'Spices', 'Beverages', 'Snacks', 'Baked Goods', 'Canned Goods', 'Other'
+];
+
+const PRODUCT_UNITS = [
+  'oz', 'lb', 'g', 'kg', 'ml', 'l', 'each', 'box', 'bag', 'bottle', 'can', 'jar', 'package'
+];
+
 interface ProductCardProps {
   product: Product;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [product, setProduct] = useState(initialProduct);
+  const queryClient = useQueryClient();
+
   // Determine if product is low on stock
   const isLowStock = product.currentStock <= product.reorderPoint;
 
+  const handleChange = (field: keyof Product, value: any) => {
+    setProduct(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      await updateProduct(product);
+      queryClient.invalidateQueries(["products"]);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating product:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    
+    setIsLoading(true);
+    try {
+      await deleteProduct(product.id);
+      queryClient.invalidateQueries(["products"]);
+      toast.success("Product deleted successfully");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Failed to delete product");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="inventory-card border rounded-lg p-4 bg-white shadow-sm">
+        <div className="flex justify-between items-start mb-4">
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isLowStock ? 'bg-orange-100 text-orange-500' : 'bg-blue-100 text-blue-500'}`}>
+            {product.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7" 
+              onClick={() => setIsEditing(false)}
+              disabled={isLoading}
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7" 
+              onClick={handleSave}
+              disabled={isLoading}
+            >
+              <Check className="h-4 w-4 text-green-500" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <Input
+              value={product.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              placeholder="Product name"
+              className="mb-2"
+            />
+            <Select 
+              value={product.category} 
+              onValueChange={(val) => handleChange('category', val)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRODUCT_CATEGORIES.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Input
+                type="number"
+                value={product.currentStock}
+                onChange={(e) => handleChange('currentStock', parseInt(e.target.value) || 0)}
+                placeholder="Current stock"
+              />
+            </div>
+            <div>
+              <Select 
+                value={product.unit} 
+                onValueChange={(val) => handleChange('unit', val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCT_UNITS.map(unit => (
+                    <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Input
+                type="number"
+                value={product.reorderPoint}
+                onChange={(e) => handleChange('reorderPoint', parseInt(e.target.value) || 0)}
+                placeholder="Reorder point"
+              />
+            </div>
+            <div>
+              <Input
+                type="number"
+                step="0.01"
+                value={product.cost}
+                onChange={(e) => handleChange('cost', parseFloat(e.target.value) || 0)}
+                placeholder="Cost per unit"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="inventory-card border rounded-lg p-4 bg-white shadow-sm relative">
-      <div className="absolute top-2 right-2">
-        <Button variant="ghost" size="icon" className="h-7 w-7">
+      <div className="absolute top-2 right-2 flex gap-1">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-7 w-7"
+          onClick={() => setIsEditing(true)}
+        >
+          <Pencil className="h-4 w-4 text-muted-foreground" />
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-7 w-7"
+          onClick={handleDelete}
+        >
           <Trash2 className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
@@ -127,7 +293,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div>
           <h3 className="font-medium text-sm">{product.name}</h3>
           <p className="text-xs text-muted-foreground">
-            {product.unit}
+            {product.category} • {product.unit}
           </p>
         </div>
       </div>
