@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
@@ -58,9 +57,22 @@ export const useScanAnalysis = (products: Product[]) => {
     let currentQuantity = 1;
     
     for (const line of lines) {
+      // Look for size/volume in the product name line first
+      const sizeInNameMatch = line.match(/.*?(?:\(|\s-\s|\s)([0-9.]+\s*(?:oz|g|ml|L|lb|kg))/i);
+      if (sizeInNameMatch) {
+        currentSize = sizeInNameMatch[1].trim();
+      }
+      
       const nameLine = line.match(/product name:?\s*(.+)/i);
       if (nameLine) {
         currentProductName = nameLine[1].trim();
+        // Check for size in the product name if not found earlier
+        if (!currentSize) {
+          const sizeInName = currentProductName.match(/.*?(?:\(|\s-\s|\s)([0-9.]+\s*(?:oz|g|ml|L|lb|kg))/i);
+          if (sizeInName) {
+            currentSize = sizeInName[1].trim();
+          }
+        }
       }
       
       const sizeLine = line.match(/size\s*\/?\s*volume:?\s*(.+)/i);
@@ -86,7 +98,7 @@ export const useScanAnalysis = (products: Product[]) => {
             name: currentProductName,
             count: currentQuantity || 1,
             confidence: 0.9,
-            size: currentSize
+            size: currentSize || 'N/A'
           });
           
           // Reset for next product
@@ -106,7 +118,7 @@ export const useScanAnalysis = (products: Product[]) => {
         name: currentProductName,
         count: currentQuantity,
         confidence: 0.9,
-        size: currentSize
+        size: currentSize || 'N/A'
       });
     }
     

@@ -251,6 +251,38 @@ export const loadMockInvoices = async (): Promise<void> => {
     // Import mock invoices
     const { mockInvoices } = await import('@/data/mockInvoices');
     
+    // First, create a map of all unique products from the mock invoices
+    const uniqueProducts = new Set<string>();
+    mockInvoices.forEach(invoice => {
+      invoice.items.forEach(item => {
+        uniqueProducts.add(item.name);
+      });
+    });
+    
+    // Create products for each unique item and store their IDs
+    const productMap = new Map<string, string>();
+    for (const productName of uniqueProducts) {
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .insert({
+          name: productName,
+          category: 'Other',
+          unit: 'each',
+          current_stock: 0,
+          reorder_point: 5,
+          cost: 0
+        })
+        .select()
+        .single();
+        
+      if (productError) {
+        console.error('Error creating product:', productError);
+        continue;
+      }
+      
+      productMap.set(productName, productData.id);
+    }
+    
     // Process each invoice
     for (const mockInvoice of mockInvoices) {
       // First create the invoice
@@ -275,10 +307,10 @@ export const loadMockInvoices = async (): Promise<void> => {
       
       const invoiceId = invoiceData.id;
       
-      // Then create all invoice items - only include fields that match the schema
+      // Then create all invoice items with product IDs
       const itemsToInsert = mockInvoice.items.map(item => ({
         invoice_id: invoiceId,
-        product_id: null, // We'll need to match products later
+        product_id: productMap.get(item.name) || null,
         quantity: item.quantity,
         unit_price: item.pricePerUnit,
         total: item.total
