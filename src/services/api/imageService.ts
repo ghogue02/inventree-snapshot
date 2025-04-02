@@ -37,20 +37,8 @@ export const generateProductImage = async (productName: string, category: string
       throw new Error('No image URL returned');
     }
 
-    const imageResponse = await fetch(data.imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch generated image`);
-    }
-
-    const imageBlob = await imageResponse.blob();
-    const reader = new FileReader();
-    const base64Promise = new Promise<string>((resolve) => {
-      reader.onloadend = () => resolve(reader.result as string);
-    });
-    reader.readAsDataURL(imageBlob);
-    const base64Data = await base64Promise;
-
-    return base64Data;
+    // Return the base64 image data directly from the edge function
+    return data.imageUrl;
 
   } catch (error) {
     toast.error("Failed to generate image");
