@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ExtendedMediaTrackCapabilities, ExtendedMediaTrackConstraintSet } from "@/types/media-extensions";
 
 interface CameraCaptureProps {
   capturedImage: string | null;
@@ -62,9 +63,11 @@ const CameraCapture = ({
         // Try to enable flash if available
         try {
           const track = stream.getVideoTracks()[0];
-          if (track?.getCapabilities?.()?.torch) {
+          const capabilities = track.getCapabilities() as ExtendedMediaTrackCapabilities;
+          
+          if (capabilities?.torch) {
             await track.applyConstraints({
-              advanced: [{ torch: false }],
+              advanced: [{ torch: false } as ExtendedMediaTrackConstraintSet],
             });
           }
         } catch (e) {
@@ -107,10 +110,12 @@ const CameraCapture = ({
     
     try {
       const track = mediaStreamRef.current.getVideoTracks()[0];
-      if (track?.getCapabilities?.()?.torch) {
+      const capabilities = track.getCapabilities() as ExtendedMediaTrackCapabilities;
+      
+      if (capabilities?.torch) {
         const newFlashState = !flashActive;
         await track.applyConstraints({
-          advanced: [{ torch: newFlashState }],
+          advanced: [{ torch: newFlashState } as ExtendedMediaTrackConstraintSet],
         });
         setFlashActive(newFlashState);
         toast.success(newFlashState ? "Flash turned on" : "Flash turned off");
