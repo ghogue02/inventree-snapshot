@@ -27,17 +27,18 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
         },
         format: 'es',
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name]-[hash].js',
-        assetFileNames: '[name].[ext]'
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       },
     },
+    target: 'esnext',
   },
   server: {
     host: "::",
     port: 8080,
     headers: {
-      'Content-Type': 'application/javascript',
+      'Content-Type': 'text/javascript',
     },
   },
   logLevel: 'error',
