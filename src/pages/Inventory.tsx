@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/inventory";
-import { Search, Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { Search, Plus, Trash2, Pencil, X, Check, Database } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProducts, updateProduct, deleteProduct } from "@/services/apiService";
+import { getProducts, updateProduct, deleteProduct, loadMockProducts } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,12 +15,26 @@ import { toast } from "sonner";
 
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts
   });
+
+  const handleLoadMockData = async () => {
+    setIsLoading(true);
+    try {
+      await loadMockProducts();
+      queryClient.invalidateQueries(["products"]);
+    } catch (error) {
+      console.error("Error loading mock data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Filter products based on search
   const filteredProducts = products.filter(product => 
@@ -53,13 +67,19 @@ const Inventory = () => {
               className="pl-10"
             />
           </div>
-          <Button onClick={() => navigate("/add-product")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Product
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleLoadMockData} disabled={isLoading}>
+              <Database className="mr-2 h-4 w-4" />
+              Load Sample Data
+            </Button>
+            <Button onClick={() => navigate("/add-product")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Product
+            </Button>
+          </div>
         </div>
 
-        {isLoading ? (
+        {isLoadingProducts ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <Card key={i}>
