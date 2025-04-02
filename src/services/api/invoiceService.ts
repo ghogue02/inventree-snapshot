@@ -251,45 +251,19 @@ export const loadMockInvoices = async (): Promise<void> => {
     // Import mock invoices
     const { mockInvoices } = await import('@/data/mockInvoices');
     
-    // First, create a map of all unique products from the mock invoices
-    const uniqueProducts = new Set<string>();
-    mockInvoices.forEach(invoice => {
-      invoice.items.forEach(item => {
-        uniqueProducts.add(item.name);
-      });
-    });
-    
-    // Create products for each unique item and store their IDs
-    const productMap = new Map<string, string>();
-    for (const productName of uniqueProducts) {
-      try {
-        const { data: productData, error: productError } = await supabase
-          .from('products')
-          .insert({
-            name: productName,
-            category: 'Other',
-            unit: 'each',
-            current_stock: 0,
-            reorder_point: 5,
-            cost: 0
-          })
-          .select()
-          .single();
-          
-        if (productError) {
-          console.error('Error creating product:', productError);
-          toast.error(`Failed to create product: ${productName}`);
-          continue;
-        }
-        
-        if (productData) {
-          productMap.set(productName, productData.id);
-        }
-      } catch (error) {
-        console.error(`Error creating product ${productName}:`, error);
-        toast.error(`Failed to create product: ${productName}`);
-      }
+    // First, get all existing products
+    const { data: existingProducts, error: productsError } = await supabase
+      .from('products')
+      .select('id, name');
+      
+    if (productsError) {
+      console.error('Error fetching products:', productsError);
+      toast.error("Failed to fetch products");
+      throw productsError;
     }
+    
+    // Create a map of product names to IDs
+    const productMap = new Map(existingProducts.map(p => [p.name, p.id]));
     
     // Process each invoice
     for (const mockInvoice of mockInvoices) {
@@ -352,6 +326,24 @@ export const loadMockInvoices = async (): Promise<void> => {
           await supabase.from('invoices').delete().eq('id', invoiceId);
           toast.error(`Failed to add items for invoice ${mockInvoice.invoiceNumber}`);
           continue;
+        }
+        
+        // Update product stock levels based on invoice items
+        for (const item of validItems) {
+          const productId = productMap.get(item.name);
+          if (productId) {
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({
+                current_stock: supabase.raw(`current_stock + ${item.quantity}`)
+              })
+              .eq('id', productId);
+              
+            if (updateError) {
+              console.error(`Error updating stock for ${item.name}:`, updateError);
+              toast.error(`Failed to update stock for ${item.name}`);
+            }
+          }
         }
         
         toast.success(`Invoice ${mockInvoice.invoiceNumber} created successfully`);
