@@ -275,19 +275,13 @@ export const loadMockInvoices = async (): Promise<void> => {
       
       const invoiceId = invoiceData.id;
       
-      // Then create all invoice items
+      // Then create all invoice items - only include fields that match the schema
       const itemsToInsert = mockInvoice.items.map(item => ({
         invoice_id: invoiceId,
         product_id: null, // We'll need to match products later
-        name: item.name,
         quantity: item.quantity,
-        unit: item.unit,
-        case_size: item.caseSize,
         unit_price: item.pricePerUnit,
-        total: item.total,
-        category: item.category,
-        brand: item.brand,
-        notes: item.notes
+        total: item.total
       }));
       
       const { error: itemsError } = await supabase

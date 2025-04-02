@@ -1,26 +1,17 @@
 export interface InvoiceItem {
   name: string;
   quantity: number;
-  unit: string;
-  caseSize?: string;
   pricePerUnit: number;
-  totalPrice: number;
-  category: string;
-  brand?: string;
-  notes?: string;
+  total: number;
 }
 
 export interface Invoice {
   id: string;
-  date: string;
   supplier: string;
   invoiceNumber: string;
-  items: InvoiceItem[];
-  subtotal: number;
-  tax: number;
+  date: string;
   total: number;
-  paymentTerms: string;
-  deliveryDate: string;
+  items: InvoiceItem[];
 }
 
 export const mockInvoices: Invoice[] = [
@@ -33,59 +24,35 @@ export const mockInvoices: Invoice[] = [
       {
         name: "Ground Beef",
         quantity: 4,
-        unit: "case",
-        caseSize: "10 lb per case",
         pricePerUnit: 89.99,
-        totalPrice: 359.96,
-        category: "Meat",
-        brand: "Sysco Premium",
-        notes: "80/20 blend"
+        total: 359.96
       },
       {
         name: "Chicken Breast",
         quantity: 3,
-        unit: "case",
-        caseSize: "40 lb per case",
         pricePerUnit: 159.99,
-        totalPrice: 479.97,
-        category: "Meat",
-        brand: "Sysco Premium"
+        total: 479.97
       },
       {
         name: "Fresh Tomatoes",
         quantity: 2,
-        unit: "case",
-        caseSize: "25 lb per case",
         pricePerUnit: 49.99,
-        totalPrice: 99.98,
-        category: "Produce"
+        total: 99.98
       },
       {
         name: "All-Purpose Flour",
         quantity: 5,
-        unit: "bag",
-        caseSize: "50 lb per bag",
         pricePerUnit: 29.99,
-        totalPrice: 149.95,
-        category: "Dry Goods",
-        brand: "Gold Medal"
+        total: 149.95
       },
       {
         name: "Cooking Oil",
         quantity: 2,
-        unit: "case",
-        caseSize: "35 lb per case",
         pricePerUnit: 79.99,
-        totalPrice: 159.98,
-        category: "Oils",
-        brand: "Sysco"
+        total: 159.98
       }
     ],
-    subtotal: 1249.84,
-    tax: 112.49,
-    total: 1362.33,
-    paymentTerms: "Net 30",
-    deliveryDate: "2024-03-16"
+    total: 1249.84
   },
   {
     id: "INV-002",
@@ -96,58 +63,35 @@ export const mockInvoices: Invoice[] = [
       {
         name: "Salmon Fillet",
         quantity: 2,
-        unit: "case",
-        caseSize: "15 lb per case",
         pricePerUnit: 199.99,
-        totalPrice: 399.98,
-        category: "Seafood",
-        brand: "US Foods Premium"
+        total: 399.98
       },
       {
         name: "Mixed Greens",
         quantity: 3,
-        unit: "case",
-        caseSize: "5 lb per case",
         pricePerUnit: 39.99,
-        totalPrice: 119.97,
-        category: "Produce"
+        total: 119.97
       },
       {
         name: "Pasta",
         quantity: 4,
-        unit: "case",
-        caseSize: "20 lb per case",
         pricePerUnit: 45.99,
-        totalPrice: 183.96,
-        category: "Dry Goods",
-        brand: "Barilla"
+        total: 183.96
       },
       {
         name: "Wine",
         quantity: 6,
-        unit: "case",
-        caseSize: "12 bottles per case",
         pricePerUnit: 159.99,
-        totalPrice: 959.94,
-        category: "Beverages",
-        brand: "Various"
+        total: 959.94
       },
       {
         name: "Dish Soap",
         quantity: 2,
-        unit: "case",
-        caseSize: "4 gallons per case",
         pricePerUnit: 89.99,
-        totalPrice: 179.98,
-        category: "Cleaning Supplies",
-        brand: "Ecolab"
+        total: 179.98
       }
     ],
-    subtotal: 1843.83,
-    tax: 165.94,
-    total: 2009.77,
-    paymentTerms: "Net 30",
-    deliveryDate: "2024-03-17"
+    total: 1843.83
   },
   {
     id: "INV-003",
@@ -158,57 +102,35 @@ export const mockInvoices: Invoice[] = [
       {
         name: "Beef Tenderloin",
         quantity: 1,
-        unit: "case",
-        caseSize: "15 lb per case",
         pricePerUnit: 299.99,
-        totalPrice: 299.99,
-        category: "Meat",
-        brand: "GFS Premium"
+        total: 299.99
       },
       {
         name: "Fresh Vegetables",
         quantity: 3,
-        unit: "case",
-        caseSize: "15 lb per case",
         pricePerUnit: 69.99,
-        totalPrice: 209.97,
-        category: "Produce"
+        total: 209.97
       },
       {
         name: "Rice",
         quantity: 3,
-        unit: "bag",
-        caseSize: "50 lb per bag",
         pricePerUnit: 49.99,
-        totalPrice: 149.97,
-        category: "Dry Goods",
-        brand: "GFS"
+        total: 149.97
       },
       {
         name: "Paper Towels",
         quantity: 4,
-        unit: "case",
-        caseSize: "12 rolls per case",
         pricePerUnit: 39.99,
-        totalPrice: 159.96,
-        category: "Paper Goods"
+        total: 159.96
       },
       {
         name: "Hand Soap",
         quantity: 2,
-        unit: "case",
-        caseSize: "4 gallons per case",
         pricePerUnit: 79.99,
-        totalPrice: 159.98,
-        category: "Cleaning Supplies",
-        brand: "GFS"
+        total: 159.98
       }
     ],
-    subtotal: 979.87,
-    tax: 88.19,
-    total: 1068.06,
-    paymentTerms: "Net 30",
-    deliveryDate: "2024-03-18"
+    total: 979.87
   },
   {
     id: "INV-004",
@@ -219,57 +141,35 @@ export const mockInvoices: Invoice[] = [
       {
         name: "Shrimp",
         quantity: 2,
-        unit: "case",
-        caseSize: "5 lb per case",
         pricePerUnit: 149.99,
-        totalPrice: 299.98,
-        category: "Seafood",
-        brand: "PFG Premium"
+        total: 299.98
       },
       {
         name: "Fresh Herbs",
         quantity: 1,
-        unit: "case",
-        caseSize: "5 lb per case",
         pricePerUnit: 89.99,
-        totalPrice: 89.99,
-        category: "Produce"
+        total: 89.99
       },
       {
         name: "Olive Oil",
         quantity: 2,
-        unit: "case",
-        caseSize: "3 gallons per case",
         pricePerUnit: 129.99,
-        totalPrice: 259.98,
-        category: "Oils",
-        brand: "PFG"
+        total: 259.98
       },
       {
         name: "Beer",
         quantity: 8,
-        unit: "case",
-        caseSize: "24 cans per case",
         pricePerUnit: 49.99,
-        totalPrice: 399.92,
-        category: "Beverages",
-        brand: "Various"
+        total: 399.92
       },
       {
         name: "To-Go Containers",
         quantity: 3,
-        unit: "case",
-        caseSize: "500 units per case",
         pricePerUnit: 79.99,
-        totalPrice: 239.97,
-        category: "Disposables"
+        total: 239.97
       }
     ],
-    subtotal: 1289.84,
-    tax: 116.09,
-    total: 1405.93,
-    paymentTerms: "Net 30",
-    deliveryDate: "2024-03-19"
+    total: 1289.84
   },
   {
     id: "INV-005",
@@ -280,56 +180,34 @@ export const mockInvoices: Invoice[] = [
       {
         name: "Pork Tenderloin",
         quantity: 3,
-        unit: "case",
-        caseSize: "10 lb per case",
         pricePerUnit: 129.99,
-        totalPrice: 389.97,
-        category: "Meat",
-        brand: "BEK Premium"
+        total: 389.97
       },
       {
         name: "Fresh Fruit",
         quantity: 2,
-        unit: "case",
-        caseSize: "20 lb per case",
         pricePerUnit: 89.99,
-        totalPrice: 179.98,
-        category: "Produce"
+        total: 179.98
       },
       {
         name: "Sugar",
         quantity: 2,
-        unit: "bag",
-        caseSize: "50 lb per bag",
         pricePerUnit: 59.99,
-        totalPrice: 119.98,
-        category: "Dry Goods",
-        brand: "BEK"
+        total: 119.98
       },
       {
         name: "Soft Drinks",
         quantity: 5,
-        unit: "case",
-        caseSize: "24 bottles per case",
         pricePerUnit: 29.99,
-        totalPrice: 149.95,
-        category: "Beverages",
-        brand: "Various"
+        total: 149.95
       },
       {
         name: "Napkins",
         quantity: 4,
-        unit: "case",
-        caseSize: "1000 units per case",
         pricePerUnit: 49.99,
-        totalPrice: 199.96,
-        category: "Paper Goods"
+        total: 199.96
       }
     ],
-    subtotal: 1039.84,
-    tax: 93.59,
-    total: 1133.43,
-    paymentTerms: "Net 30",
-    deliveryDate: "2024-03-20"
+    total: 1039.84
   }
 ]; 
