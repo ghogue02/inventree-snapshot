@@ -10,20 +10,21 @@ interface CameraCaptureProps {
   onImageCaptured: (imageData: string) => void;
   onResetCapture: () => void;
   isAnalyzing: boolean;
+  scanMode: 'single' | 'shelf';
 }
 
 const CameraCapture = ({ 
   capturedImage, 
   onImageCaptured,
   onResetCapture,
-  isAnalyzing
+  isAnalyzing,
+  scanMode
 }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
 
   useEffect(() => {
     return () => {
@@ -103,33 +104,6 @@ const CameraCapture = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center mb-2">
-        <div className="inline-flex rounded-md shadow-sm" role="group">
-          <button
-            type="button"
-            onClick={() => setScanMode('single')}
-            className={`px-4 py-2 text-sm font-medium ${
-              scanMode === 'single' 
-                ? 'bg-primary text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            } border border-gray-200 rounded-l-lg`}
-          >
-            Single Item
-          </button>
-          <button
-            type="button"
-            onClick={() => setScanMode('shelf')}
-            className={`px-4 py-2 text-sm font-medium ${
-              scanMode === 'shelf' 
-                ? 'bg-primary text-white' 
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            } border border-gray-200 rounded-r-lg`}
-          >
-            Shelf Scan
-          </button>
-        </div>
-      </div>
-      
       <div className="video-container bg-gray-100 rounded-md min-h-[280px] flex items-center justify-center relative">
         {!capturedImage ? (
           <>

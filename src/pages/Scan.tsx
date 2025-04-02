@@ -3,6 +3,7 @@ import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
 import useScanAnalysis from "@/hooks/useScanAnalysis";
@@ -10,10 +11,10 @@ import CameraCapture from "@/components/scan/CameraCapture";
 import VideoUploader from "@/components/scan/VideoUploader";
 import AnalysisResults from "@/components/scan/AnalysisResults";
 import BatchScanResults from "@/components/scan/BatchScanResults";
+import { Camera, Scan as ScanIcon } from "lucide-react";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
-  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
@@ -27,6 +28,8 @@ const Scan = () => {
     analysisResult,
     recognizedItems,
     isUploading,
+    scanMode,
+    setScanMode,
     selectedItemIndex,
     selectItem,
     resetCapture,
@@ -62,30 +65,16 @@ const Scan = () => {
             <Card>
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-center mb-4">
-                  <div className="inline-flex rounded-md shadow-sm" role="group">
-                    <button
-                      type="button"
-                      onClick={() => setScanMode('single')}
-                      className={`px-4 py-2 text-sm font-medium ${
-                        scanMode === 'single' 
-                          ? 'bg-primary text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
-                      } border border-gray-200 rounded-l-lg`}
-                    >
+                  <ToggleGroup type="single" value={scanMode} onValueChange={(value) => value && setScanMode(value as 'single' | 'shelf')}>
+                    <ToggleGroupItem value="single" className="flex items-center gap-1">
+                      <Camera className="h-4 w-4" />
                       Single Item
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setScanMode('shelf')}
-                      className={`px-4 py-2 text-sm font-medium ${
-                        scanMode === 'shelf' 
-                          ? 'bg-primary text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-50'
-                      } border border-gray-200 rounded-r-lg`}
-                    >
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="shelf" className="flex items-center gap-1">
+                      <ScanIcon className="h-4 w-4" />
                       Shelf Scan
-                    </button>
-                  </div>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
                 </div>
                 
                 <CameraCapture 
@@ -93,6 +82,7 @@ const Scan = () => {
                   onImageCaptured={handleImageCaptured}
                   onResetCapture={resetCapture}
                   isAnalyzing={isAnalyzing}
+                  scanMode={scanMode}
                 />
               </CardContent>
             </Card>
