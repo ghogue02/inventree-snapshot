@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/inventory";
 import { Search, Plus, Trash2, Pencil, X, Check, Database, Image } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProducts, updateProduct, deleteProduct, loadMockProducts, generateAllProductImages } from "@/services/apiService";
+import { updateProduct, deleteProduct, loadMockProducts, generateAllProductImages } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
