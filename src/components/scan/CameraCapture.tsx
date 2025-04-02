@@ -27,6 +27,7 @@ const CameraCapture = ({
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [flashActive, setFlashActive] = useState(false);
   const isMobile = useIsMobile();
@@ -43,6 +44,7 @@ const CameraCapture = ({
   const startCamera = async () => {
     try {
       setCameraError(null);
+      setIsLoading(true);
       
       const constraints = {
         video: {
@@ -58,7 +60,22 @@ const CameraCapture = ({
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         mediaStreamRef.current = stream;
-        setIsCapturing(true);
+        
+        // Make sure video is playing before considering it loaded
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play()
+              .then(() => {
+                setIsCapturing(true);
+                setIsLoading(false);
+              })
+              .catch(error => {
+                console.error("Error playing video:", error);
+                setCameraError("Failed to start camera stream");
+                setIsLoading(false);
+              });
+          }
+        };
         
         // Try to enable flash if available
         try {
@@ -76,6 +93,7 @@ const CameraCapture = ({
       }
     } catch (error: any) {
       console.error("Error starting camera:", error);
+      setIsLoading(false);
       
       let errorMessage = "Failed to access camera";
       
@@ -102,6 +120,11 @@ const CameraCapture = ({
       mediaStreamRef.current = null;
       setIsCapturing(false);
       setFlashActive(false);
+      
+      // Make sure to clear the video source when stopping
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
     }
   };
 
@@ -176,17 +199,21 @@ const CameraCapture = ({
               </div>
             ) : (
               <div className="relative w-full h-full">
+                {isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/10">
+                    <div className="bg-white/90 px-4 py-2 rounded-full flex items-center">
+                      <Loader2 className="animate-spin mr-2 h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium">Accessing camera...</span>
+                    </div>
+                  </div>
+                )}
+                
                 <video 
                   ref={videoRef} 
                   autoPlay 
                   playsInline
-                  className={isCapturing ? "w-full h-full object-cover rounded-md" : "hidden"}
-                  onLoadedMetadata={() => {
-                    if (videoRef.current) {
-                      videoRef.current.classList.remove("opacity-0");
-                      videoRef.current.classList.add("opacity-100");
-                    }
-                  }}
+                  muted
+                  className={`w-full h-full object-cover rounded-md transition-opacity duration-300 ${isCapturing ? 'opacity-100' : 'opacity-0'}`}
                 />
                 
                 {isCapturing && (
@@ -228,7 +255,7 @@ const CameraCapture = ({
                 )}
               </div>
             )}
-            {!isCapturing && !cameraError && (
+            {!isCapturing && !cameraError && !isLoading && (
               <div className="text-center p-4">
                 <p className="text-muted-foreground mb-2">
                   {scanMode === 'single' 
@@ -273,11 +300,12 @@ const CameraCapture = ({
       )}
 
       <div className="flex justify-center">
-        {!isCapturing && !capturedImage && (
+        {!isCapturing && !capturedImage && !isLoading && (
           <Button 
             onClick={startCamera} 
             className={`${cameraError ? "bg-amber-600 hover:bg-amber-700" : ""} w-full sm:w-auto`}
             size={isMobile ? "lg" : "default"}
+            disabled={isLoading}
           >
             {cameraError ? (
               <>
@@ -290,6 +318,13 @@ const CameraCapture = ({
                 Start Camera
               </>
             )}
+          </Button>
+        )}
+        
+        {isLoading && (
+          <Button disabled className="opacity-50">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Starting Camera...
           </Button>
         )}
 
