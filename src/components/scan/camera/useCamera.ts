@@ -9,6 +9,7 @@ export function useCamera() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isFlashing, setIsFlashing] = useState(false); // State for capture visual feedback
   const { flashActive, toggleFlash, initializeFlash } = useFlash();
 
   useEffect(() => {
@@ -92,6 +93,14 @@ export function useCamera() {
     }
   };
 
+  // Visual feedback flash effect for capture
+  const triggerCaptureEffect = () => {
+    setIsFlashing(true);
+    setTimeout(() => {
+      setIsFlashing(false);
+    }, 100); // Quick 100ms flash
+  };
+
   const handleToggleFlash = () => {
     toggleFlash(mediaStreamRef.current);
   };
@@ -102,8 +111,10 @@ export function useCamera() {
     isLoading,
     cameraError,
     flashActive,
+    isFlashing,
     startCamera,
     stopCamera,
+    triggerCaptureEffect,
     toggleFlash: handleToggleFlash,
     mediaStreamRef
   };

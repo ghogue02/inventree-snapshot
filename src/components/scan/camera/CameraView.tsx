@@ -53,10 +53,16 @@ const CameraView = ({
   }
   
   return (
-    <div className="relative w-full h-full" onClick={onContainerTap}>
+    <div 
+      className="relative w-full h-full touch-none" 
+      onClick={onContainerTap}
+      role="button"
+      aria-label="Tap to capture"
+      tabIndex={0}
+    >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/10">
-          <div className="bg-white/90 px-4 py-2 rounded-full flex items-center">
+          <div className="bg-white/90 px-4 py-2 rounded-full flex items-center animate-pulse-light">
             <Loader2 className="animate-spin mr-2 h-5 w-5 text-primary" />
             <span className="text-sm font-medium">Accessing camera...</span>
           </div>

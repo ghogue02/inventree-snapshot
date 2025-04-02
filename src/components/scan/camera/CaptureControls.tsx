@@ -40,6 +40,7 @@ const CaptureControls = ({
         onClick={onCaptureImage} 
         size={isMobile ? "lg" : "default"}
         className={`${isMobile ? "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10 rounded-full h-16 w-16 shadow-lg p-0 flex items-center justify-center" : ""}`}
+        aria-label={scanMode === 'shelf' ? "Scan shelf" : "Capture item"}
       >
         {isMobile ? (
           <div className="rounded-full h-12 w-12 border-4 border-white"></div>

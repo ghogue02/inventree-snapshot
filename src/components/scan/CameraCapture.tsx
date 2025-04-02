@@ -32,7 +32,9 @@ const CameraCapture = ({
     cameraError, 
     startCamera, 
     stopCamera, 
-    toggleFlash 
+    toggleFlash,
+    triggerCaptureEffect,
+    isFlashing
   } = useCamera();
   const isMobile = useIsMobile();
 
@@ -43,6 +45,9 @@ const CameraCapture = ({
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
+
+    // Visual feedback
+    triggerCaptureEffect();
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -72,8 +77,7 @@ const CameraCapture = ({
     <div className="space-y-4">
       <div 
         ref={videoContainerRef}
-        className="video-container bg-gray-100 rounded-md min-h-[280px] flex items-center justify-center relative overflow-hidden"
-        onClick={handleContainerTap}
+        className={`video-container bg-gray-100 rounded-md min-h-[280px] flex items-center justify-center relative overflow-hidden ${isFlashing ? 'bg-white' : ''}`}
       >
         {!capturedImage ? (
           <CameraView 
