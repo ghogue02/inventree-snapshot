@@ -27,6 +27,9 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
         },
         format: 'es',
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name]-[hash].js',
+        assetFileNames: '[name].[ext]'
       },
     },
   },
