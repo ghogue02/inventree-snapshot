@@ -62,7 +62,7 @@ const CameraView = ({
   
   return (
     <div 
-      className="relative w-full h-full touch-none" 
+      className={`relative w-full h-full touch-none ${isMobile ? 'h-[65vh]' : ''}`}
       onClick={onContainerTap}
       role="button"
       aria-label="Tap to capture"

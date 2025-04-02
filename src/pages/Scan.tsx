@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,7 +79,6 @@ const Scan = () => {
     handleProductAdded(product);
   };
   
-  // Function to handle manual sync
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -93,7 +91,6 @@ const Scan = () => {
     }
   };
   
-  // Auto sync when coming back online
   useEffect(() => {
     if (isOnline && (pendingCounts > 0 || pendingImages > 0)) {
       syncPendingData()
@@ -107,8 +104,7 @@ const Scan = () => {
       title="Scan Inventory" 
       description="Use your camera to automatically count inventory items"
     >
-      <div className={`${isMobile ? 'p-2' : 'p-6'}`}>
-        {/* Offline status indicator for pending items */}
+      <div className={`${isMobile ? 'p-0 sm:p-2' : 'p-6'}`}>
         {(pendingCounts > 0 || pendingImages > 0) && (
           <Alert variant={isOnline ? "default" : "destructive"} className="mb-4 bg-amber-50">
             <AlertDescription className="flex justify-between items-center">
@@ -141,9 +137,9 @@ const Scan = () => {
           </TabsList>
           
           <TabsContent value="camera" className="space-y-4">
-            <Card className={isMobile ? "overflow-hidden shadow-sm" : ""}>
-              <CardContent className={isMobile ? "p-3" : "p-6 space-y-4"}>
-                <div className="flex justify-between items-center mb-4">
+            <Card className={isMobile ? "overflow-hidden shadow-sm border-0 sm:border" : ""}>
+              <CardContent className={isMobile ? "p-0 sm:p-3" : "p-6 space-y-4"}>
+                <div className={`flex justify-between items-center ${isMobile ? 'p-3' : 'mb-4'}`}>
                   <ToggleGroup type="single" value={scanMode} onValueChange={(value) => value && setScanMode(value as 'single' | 'shelf')}>
                     <ToggleGroupItem value="single" className="flex items-center gap-1">
                       <Camera className="h-4 w-4" />
@@ -243,7 +239,6 @@ const Scan = () => {
         </Tabs>
       </div>
       
-      {/* Product Form Dialog */}
       <ProductFormDialog
         open={productFormOpen}
         onOpenChange={setProductFormOpen}

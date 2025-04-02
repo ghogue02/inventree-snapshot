@@ -99,7 +99,9 @@ const CameraCapture = ({
     <div className="space-y-4">
       <div 
         ref={videoContainerRef}
-        className={`video-container bg-gray-100 rounded-md min-h-[280px] flex items-center justify-center relative overflow-hidden ${isFlashing ? 'bg-white' : ''}`}
+        className={`video-container bg-gray-100 rounded-md overflow-hidden relative ${
+          isCapturing && isMobile ? 'fullscreen min-h-[65vh]' : 'min-h-[280px]'
+        } ${isFlashing ? 'bg-white' : ''}`}
       >
         {!capturedImage ? (
           <CameraView 
