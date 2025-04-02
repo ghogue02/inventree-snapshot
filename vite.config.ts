@@ -26,11 +26,15 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
         },
+        format: 'es',
       },
     },
   },
   server: {
     host: "::",
     port: 8080,
+    headers: {
+      'Content-Type': 'application/javascript',
+    },
   },
 });
