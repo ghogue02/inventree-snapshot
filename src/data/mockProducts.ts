@@ -121,4 +121,3 @@ export const mockProducts: Partial<Product>[] = [
     image: null
   }
 ]; 
-]; 
