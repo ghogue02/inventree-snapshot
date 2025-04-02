@@ -1,8 +1,9 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { analyzeImageWithOpenAI, analyzeShelfImage } from "@/services/apiService";
+import { useOfflineStore } from "@/stores/offlineStore";
+import { useConnectivity } from "@/hooks/use-connectivity";
 
 export const useImageAnalysis = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -10,6 +11,10 @@ export const useImageAnalysis = () => {
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
   const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  
+  const { isOnline, checkConnection } = useConnectivity();
+  const { addPendingImageRequest, cacheRecognizedItems } = useOfflineStore();
 
   const analyzeImage = async (imageData?: string, products?: Product[]) => {
     const imageToAnalyze = imageData || capturedImage;
@@ -17,8 +22,32 @@ export const useImageAnalysis = () => {
     if (!imageToAnalyze) return;
     
     setIsAnalyzing(true);
+    setAnalysisError(null);
     
     try {
+      const isConnected = await checkConnection();
+      
+      if (!isConnected) {
+        const requestId = addPendingImageRequest(imageToAnalyze, scanMode);
+        
+        toast.warning(
+          scanMode === 'shelf'
+            ? "You're offline. Your shelf scan will be processed when you reconnect."
+            : "You're offline. Your image will be analyzed when you reconnect.", 
+          { duration: 5000 }
+        );
+        
+        setAnalysisResult(
+          scanMode === 'shelf'
+            ? "Shelf scan queued for analysis when online"
+            : "Image queued for analysis when online"
+        );
+        
+        setRecognizedItems([]);
+        setIsAnalyzing(false);
+        return;
+      }
+      
       toast.loading("Analyzing image...");
       
       if (scanMode === 'shelf') {
@@ -42,16 +71,30 @@ export const useImageAnalysis = () => {
           setAnalysisResult("Shelf analysis complete. Here are the detected items:");
         }
       } else {
-        const result = await analyzeImageWithOpenAI(
-          imageToAnalyze,
-          "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
-        );
-        
-        setAnalysisResult(result);
-        
-        if (products) {
-          const extractedItems = extractItemsFromAnalysis(result, products);
-          setRecognizedItems(extractedItems);
+        try {
+          const result = await analyzeImageWithOpenAI(
+            imageToAnalyze,
+            "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
+          );
+          
+          setAnalysisResult(result);
+          
+          if (products) {
+            const extractedItems = extractItemsFromAnalysis(result, products);
+            setRecognizedItems(extractedItems);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+            setAnalysisError("Network timeout. Please check your connection and try again.");
+          } else if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
+            setAnalysisError("Rate limit exceeded. Please wait a moment and try again.");
+          } else {
+            setAnalysisError("Failed to analyze the image. The image may be too blurry or dark.");
+          }
+          
+          throw error;
         }
       }
       
@@ -61,7 +104,22 @@ export const useImageAnalysis = () => {
     } catch (error) {
       console.error("Error analyzing image:", error);
       toast.dismiss();
-      toast.error("Failed to analyze image. Please try again or upload a clearer photo.");
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+        toast.error("Network error. Check your connection and try again.");
+      } else if (errorMessage.includes('rate') || errorMessage.includes('limit')) {
+        toast.error("Analysis temporarily unavailable. Please try again shortly.");
+      } else {
+        toast.error("Failed to analyze image. Try capturing a clearer photo.", {
+          action: {
+            label: "Try Again",
+            onClick: () => resetCapture()
+          }
+        });
+      }
+      
       setAnalysisResult(null);
     } finally {
       setIsAnalyzing(false);
@@ -143,6 +201,7 @@ export const useImageAnalysis = () => {
     setCapturedImage(null);
     setAnalysisResult(null);
     setRecognizedItems([]);
+    setAnalysisError(null);
   };
 
   return {
@@ -154,6 +213,7 @@ export const useImageAnalysis = () => {
     setRecognizedItems,
     scanMode,
     setScanMode,
+    analysisError,
     analyzeImage,
     resetCapture,
     checkIfItemExists

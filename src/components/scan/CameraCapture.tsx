@@ -7,6 +7,8 @@ import { useCamera } from "./camera/useCamera";
 import CameraView from "./camera/CameraView";
 import CaptureControls from "./camera/CaptureControls";
 import CapturedImageView from "./camera/CapturedImageView";
+import { optimizeImage } from "@/utils/imageUtils";
+import { toast } from "sonner";
 
 interface CameraCaptureProps {
   capturedImage: string | null;
@@ -37,8 +39,9 @@ const CameraCapture = ({
     isFlashing
   } = useCamera();
   const isMobile = useIsMobile();
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
-  const captureImage = () => {
+  const captureImage = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     
     // Add haptic feedback if available
@@ -60,10 +63,29 @@ const CameraCapture = ({
     
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    const imageDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    onImageCaptured(imageDataUrl);
+    const rawImageData = canvas.toDataURL("image/jpeg", 0.85);
     
-    stopCamera();
+    try {
+      // Optimize the image before passing it up
+      setIsOptimizing(true);
+      
+      // Use more compression for shelf mode (likely larger scenes)
+      const quality = scanMode === 'shelf' ? 0.7 : 0.85;
+      const maxWidth = scanMode === 'shelf' ? 1280 : 1024;
+      
+      const optimizedImage = await optimizeImage(rawImageData, maxWidth, maxWidth, quality);
+      
+      stopCamera();
+      onImageCaptured(optimizedImage);
+    } catch (error) {
+      console.error("Error optimizing image:", error);
+      toast.error("Failed to process image. Using original quality.");
+      stopCamera();
+      // Fall back to unoptimized image
+      onImageCaptured(rawImageData);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const handleContainerTap = () => {
@@ -83,7 +105,7 @@ const CameraCapture = ({
           <CameraView 
             videoRef={videoRef}
             isCapturing={isCapturing}
-            isLoading={isLoading}
+            isLoading={isLoading || isOptimizing}
             cameraError={cameraError}
             scanMode={scanMode}
             toggleFlash={toggleFlash}
@@ -110,7 +132,7 @@ const CameraCapture = ({
       <div className="flex justify-center">
         <CaptureControls 
           isCapturing={isCapturing}
-          isLoading={isLoading}
+          isLoading={isLoading || isOptimizing}
           capturedImage={capturedImage}
           cameraError={cameraError}
           scanMode={scanMode}

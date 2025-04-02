@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,12 +14,26 @@ import VideoUploader from "@/components/scan/VideoUploader";
 import AnalysisResults from "@/components/scan/AnalysisResults";
 import BatchScanResults from "@/components/scan/BatchScanResults";
 import ProductFormDialog from "@/components/scan/ProductFormDialog";
-import { Camera, Scan as ScanIcon } from "lucide-react";
+import { Camera, Scan as ScanIcon, RefreshCcw, WifiOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useConnectivity } from "@/hooks/use-connectivity";
+import { useOfflineStore } from "@/stores/offlineStore";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { syncPendingData } from "@/services/syncService";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
   const isMobile = useIsMobile();
+  const { isOnline, connectionStatus } = useConnectivity();
+  const pendingCounts = useOfflineStore(
+    state => state.pendingInventoryCounts.filter(c => !c.synced).length
+  );
+  const pendingImages = useOfflineStore(
+    state => state.pendingImageRequests.filter(r => !r.processed).length
+  );
+  
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ["products"],
@@ -65,6 +79,28 @@ const Scan = () => {
     await refetchProducts();
     handleProductAdded(product);
   };
+  
+  // Function to handle manual sync
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await syncPendingData();
+      await refetchProducts();
+    } catch (error) {
+      console.error("Sync error:", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+  
+  // Auto sync when coming back online
+  useEffect(() => {
+    if (isOnline && (pendingCounts > 0 || pendingImages > 0)) {
+      syncPendingData()
+        .then(() => refetchProducts())
+        .catch(err => console.error("Auto sync error:", err));
+    }
+  }, [isOnline, pendingCounts, pendingImages, refetchProducts]);
 
   return (
     <Layout 
@@ -72,6 +108,32 @@ const Scan = () => {
       description="Use your camera to automatically count inventory items"
     >
       <div className={`${isMobile ? 'p-2' : 'p-6'}`}>
+        {/* Offline status indicator for pending items */}
+        {(pendingCounts > 0 || pendingImages > 0) && (
+          <Alert variant={isOnline ? "default" : "destructive"} className="mb-4 bg-amber-50">
+            <AlertDescription className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {!isOnline && <WifiOff className="h-4 w-4" />}
+                <span>
+                  {isOnline 
+                    ? `You have ${pendingCounts + pendingImages} items waiting to sync`
+                    : `You're offline with ${pendingCounts + pendingImages} pending items`}
+                </span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                disabled={!isOnline || isSyncing}
+                onClick={handleSync}
+              >
+                <RefreshCcw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync Now'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <Tabs defaultValue="camera" value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="camera">Camera Scan</TabsTrigger>

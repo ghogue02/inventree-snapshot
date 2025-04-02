@@ -1,9 +1,10 @@
 
 import React from "react";
-import { Loader2, Camera, Scan, AlertTriangle } from "lucide-react";
+import { Loader2, Camera, Scan, AlertTriangle, Wifi, WifiOff } from "lucide-react";
 import ScanFrame from "./ScanFrame";
 import FlashButton from "./FlashButton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useOfflineStore } from "@/stores/offlineStore";
 
 interface CameraViewProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -25,6 +26,7 @@ const CameraView = ({
   onContainerTap
 }: CameraViewProps) => {
   const isMobile = useIsMobile();
+  const connectionStatus = useOfflineStore(state => state.connectionStatus);
   
   if (cameraError) {
     return (
@@ -47,6 +49,12 @@ const CameraView = ({
           <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
         ) : (
           <Scan className="mx-auto h-12 w-12 text-muted-foreground" />
+        )}
+        {connectionStatus === 'offline' && (
+          <div className="mt-4 flex items-center justify-center gap-2 text-amber-500">
+            <WifiOff size={16} />
+            <span className="text-sm">Offline mode: captures will be processed when online</span>
+          </div>
         )}
       </div>
     );
@@ -79,7 +87,35 @@ const CameraView = ({
       
       {isCapturing && <ScanFrame scanMode={scanMode} />}
       
-      {isCapturing && isMobile && (
+      {/* Connection status indicator */}
+      {isCapturing && (
+        <div className="absolute top-4 right-4 z-10">
+          <div className={`px-2 py-1 rounded-full flex items-center gap-1 text-xs font-medium ${
+            connectionStatus === 'offline' ? 'bg-amber-100 text-amber-800' : 
+            connectionStatus === 'syncing' ? 'bg-blue-100 text-blue-800' : 
+            'bg-green-100 text-green-800'
+          }`}>
+            {connectionStatus === 'offline' ? (
+              <>
+                <WifiOff size={12} />
+                <span>Offline</span>
+              </>
+            ) : connectionStatus === 'syncing' ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                <span>Syncing</span>
+              </>
+            ) : (
+              <>
+                <Wifi size={12} />
+                <span>Online</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {isCapturing && (
         <div className="absolute bottom-4 left-4">
           <FlashButton onClick={(e) => {
             e.stopPropagation();
