@@ -27,12 +27,16 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: true,
+      assetsDir: 'assets',
       rollupOptions: {
         output: {
           manualChunks: {
             react: ['react', 'react-dom'],
             supabase: ['@supabase/supabase-js'],
           },
+          assetFileNames: 'assets/[name].[hash].[ext]',
+          chunkFileNames: 'assets/[name].[hash].js',
+          entryFileNames: 'assets/[name].[hash].js',
         },
       },
     },
