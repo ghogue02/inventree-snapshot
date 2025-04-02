@@ -1,9 +1,6 @@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// Debug log the environment variable (remove in production)
-console.log('API Key available:', !!import.meta.env.VITE_OPENAI_API_KEY);
-
 const getOpenAIKey = () => {
   const key = import.meta.env.VITE_OPENAI_API_KEY;
   if (!key) {
