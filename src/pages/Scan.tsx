@@ -4,6 +4,8 @@ import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
 import useScanAnalysis from "@/hooks/useScanAnalysis";
@@ -11,6 +13,7 @@ import CameraCapture from "@/components/scan/CameraCapture";
 import VideoUploader from "@/components/scan/VideoUploader";
 import AnalysisResults from "@/components/scan/AnalysisResults";
 import BatchScanResults from "@/components/scan/BatchScanResults";
+import ProductFormDialog from "@/components/scan/ProductFormDialog";
 import { Camera, Scan as ScanIcon } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -18,7 +21,7 @@ const Scan = () => {
   const [tab, setTab] = useState("camera");
   const isMobile = useIsMobile();
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts
   });
@@ -43,12 +46,24 @@ const Scan = () => {
     goToAddProduct,
     handleFileSelected,
     checkIfItemExists,
-    addToInventory
+    addToInventory,
+    productFormOpen,
+    setProductFormOpen,
+    currentItemToAdd,
+    handleProductAdded,
+    undoLastAction,
+    autoAdvance,
+    setAutoAdvance
   } = useScanAnalysis(products);
 
   const handleImageCaptured = (imageDataUrl: string) => {
     setCapturedImage(imageDataUrl);
     analyzeImage(imageDataUrl);
+  };
+
+  const handleProductSuccess = async (product) => {
+    await refetchProducts();
+    handleProductAdded(product);
   };
 
   return (
@@ -66,7 +81,7 @@ const Scan = () => {
           <TabsContent value="camera" className="space-y-4">
             <Card className={isMobile ? "overflow-hidden shadow-sm" : ""}>
               <CardContent className={isMobile ? "p-3" : "p-6 space-y-4"}>
-                <div className="flex justify-center mb-4">
+                <div className="flex justify-between items-center mb-4">
                   <ToggleGroup type="single" value={scanMode} onValueChange={(value) => value && setScanMode(value as 'single' | 'shelf')}>
                     <ToggleGroupItem value="single" className="flex items-center gap-1">
                       <Camera className="h-4 w-4" />
@@ -77,6 +92,17 @@ const Scan = () => {
                       Shelf Scan
                     </ToggleGroupItem>
                   </ToggleGroup>
+                  
+                  {scanMode === 'shelf' && (
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="auto-advance" 
+                        checked={autoAdvance}
+                        onCheckedChange={setAutoAdvance}
+                      />
+                      <Label htmlFor="auto-advance" className="text-sm">Auto-advance</Label>
+                    </div>
+                  )}
                 </div>
                 
                 <CameraCapture 
@@ -102,6 +128,9 @@ const Scan = () => {
                   onRemoveItem={removeRecognizedItem}
                   onAddToInventory={addToInventory}
                   checkIfItemExists={checkIfItemExists}
+                  selectedItemIndex={selectedItemIndex}
+                  onSelectItem={selectItem}
+                  onUndoLastAction={undoLastAction}
                 />
               ) : (
                 <AnalysisResults 
@@ -141,6 +170,9 @@ const Scan = () => {
                     onRemoveItem={removeRecognizedItem}
                     onAddToInventory={addToInventory}
                     checkIfItemExists={checkIfItemExists}
+                    selectedItemIndex={selectedItemIndex}
+                    onSelectItem={selectItem}
+                    onUndoLastAction={undoLastAction}
                   />
                 )}
               </CardContent>
@@ -148,6 +180,19 @@ const Scan = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Product Form Dialog */}
+      <ProductFormDialog
+        open={productFormOpen}
+        onOpenChange={setProductFormOpen}
+        initialValues={currentItemToAdd ? {
+          name: currentItemToAdd.name,
+          size: currentItemToAdd.size,
+          currentStock: currentItemToAdd.count
+        } : undefined}
+        rawAnalysis={analysisResult || undefined}
+        onSuccess={handleProductSuccess}
+      />
     </Layout>
   );
 };

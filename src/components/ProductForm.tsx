@@ -13,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 interface ProductFormProps {
   initialValues?: Partial<Product>;
   rawAnalysis?: string;
+  onSuccess?: (product: Product) => void;
+  dialogMode?: boolean;
 }
 
 const PRODUCT_CATEGORIES = [
@@ -24,7 +26,7 @@ const PRODUCT_UNITS = [
   'oz', 'lb', 'g', 'kg', 'ml', 'l', 'each', 'box', 'bag', 'bottle', 'can', 'jar', 'package'
 ];
 
-const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
+const ProductForm = ({ initialValues, rawAnalysis, onSuccess, dialogMode = false }: ProductFormProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [product, setProduct] = useState<Partial<Product>>({
@@ -67,7 +69,12 @@ const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
       });
 
       toast.success("Product added successfully!");
-      navigate("/inventory");
+      
+      if (onSuccess) {
+        onSuccess(newProduct);
+      } else if (!dialogMode) {
+        navigate("/inventory");
+      }
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error("Failed to add product");
@@ -184,13 +191,15 @@ const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
         )}
         
         <div className="flex justify-end space-x-2">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => navigate("/inventory")}
-          >
-            Cancel
-          </Button>
+          {!dialogMode && (
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => navigate("/inventory")}
+            >
+              Cancel
+            </Button>
+          )}
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving..." : "Add Product"}
           </Button>

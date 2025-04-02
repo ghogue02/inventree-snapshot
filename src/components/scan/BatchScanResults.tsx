@@ -1,9 +1,11 @@
+
 import React from "react";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ItemSuggestionList from "./item-suggestion/ItemSuggestionList";
+import { Undo } from "lucide-react";
 
 interface BatchScanResultsProps {
   analysisResult: string;
@@ -16,6 +18,9 @@ interface BatchScanResultsProps {
   onRemoveItem: (index: number) => void;
   onAddToInventory?: (item: InventoryRecognitionResult) => Promise<Product | null>;
   checkIfItemExists: (name: string) => Product | undefined;
+  selectedItemIndex: number | null;
+  onSelectItem: (index: number) => void;
+  onUndoLastAction?: () => void;
 }
 
 const BatchScanResults = ({
@@ -28,7 +33,10 @@ const BatchScanResults = ({
   onUpdateItem,
   onRemoveItem,
   onAddToInventory,
-  checkIfItemExists
+  checkIfItemExists,
+  selectedItemIndex,
+  onSelectItem,
+  onUndoLastAction
 }: BatchScanResultsProps) => {
   return (
     <div className="space-y-4">
@@ -43,14 +51,22 @@ const BatchScanResults = ({
         onUpdateItem={onUpdateItem}
         onRemoveItem={onRemoveItem}
         onAddToInventory={onAddToInventory}
-        selectedItemIndex={null}
-        onSelectItem={() => {}}
+        selectedItemIndex={selectedItemIndex}
+        onSelectItem={onSelectItem}
       />
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onResetCapture}>
-          Reset
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onResetCapture}>
+            Reset
+          </Button>
+          {onUndoLastAction && (
+            <Button variant="outline" onClick={onUndoLastAction} className="flex items-center gap-1">
+              <Undo className="h-4 w-4" />
+              Undo
+            </Button>
+          )}
+        </div>
         <div>
           <Button variant="secondary" onClick={onGoToAddProduct}>
             Add Product

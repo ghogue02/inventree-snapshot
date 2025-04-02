@@ -1,9 +1,15 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { analyzeImageWithOpenAI, analyzeShelfImage, addInventoryCounts, addProduct, processInventoryVideo } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
+
+interface Action {
+  type: 'update' | 'remove' | 'select';
+  item: InventoryRecognitionResult;
+  index: number;
+  previousValue?: InventoryRecognitionResult;
+}
 
 export const useScanAnalysis = (products: Product[]) => {
   const navigate = useNavigate();
@@ -15,6 +21,10 @@ export const useScanAnalysis = (products: Product[]) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [currentItemToAdd, setCurrentItemToAdd] = useState<InventoryRecognitionResult | null>(null);
+  const [actionHistory, setActionHistory] = useState<Action[]>([]);
+  const [autoAdvance, setAutoAdvance] = useState(true);
 
   const analyzeImage = async (imageData?: string) => {
     const imageToAnalyze = imageData || capturedImage;
@@ -27,11 +37,9 @@ export const useScanAnalysis = (products: Product[]) => {
       toast.loading("Analyzing image...");
       
       if (scanMode === 'shelf') {
-        // Process as batch shelf analysis
         const result = await analyzeShelfImage(imageToAnalyze);
         
         if (result && result.items) {
-          // Match products against inventory
           const enhancedItems = result.items.map(item => {
             const matchedProduct = checkIfItemExists(item.name);
             return {
@@ -46,7 +54,6 @@ export const useScanAnalysis = (products: Product[]) => {
           setAnalysisResult("Shelf analysis complete. Here are the detected items:");
         }
       } else {
-        // Process as single item analysis
         const result = await analyzeImageWithOpenAI(
           imageToAnalyze,
           "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
@@ -75,7 +82,6 @@ export const useScanAnalysis = (products: Product[]) => {
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
     
-    // Extract product information from analysis text
     let currentProductName = "";
     let currentSize = "";
     let currentQuantity = 1;
@@ -96,7 +102,6 @@ export const useScanAnalysis = (products: Product[]) => {
         currentQuantity = parseInt(quantityLine[1], 10);
       }
       
-      // If we have a product name, try to find it in existing products
       if (currentProductName && 
          (nameLine || sizeLine || quantityLine || line.trim().length === 0 || 
           line.includes("No other") || line.includes("visible"))) {
@@ -112,7 +117,6 @@ export const useScanAnalysis = (products: Product[]) => {
             size: currentSize
           });
           
-          // Reset for next product
           currentProductName = "";
           currentSize = "";
           currentQuantity = 1;
@@ -120,7 +124,6 @@ export const useScanAnalysis = (products: Product[]) => {
       }
     }
     
-    // If we have a product at the end of processing, add it
     if (currentProductName) {
       const matchedProduct = checkIfItemExists(currentProductName);
       
@@ -170,7 +173,6 @@ export const useScanAnalysis = (products: Product[]) => {
     try {
       toast.loading("Saving inventory counts...");
       
-      // Filter out items that don't have a product ID
       const validCounts = recognizedItems
         .filter(item => item.productId)
         .map(item => ({
@@ -204,14 +206,76 @@ export const useScanAnalysis = (products: Product[]) => {
 
   const updateRecognizedItem = (index: number, updatedItem: InventoryRecognitionResult) => {
     const updatedItems = [...recognizedItems];
+    
+    const previousValue = updatedItems[index];
+    
     updatedItems[index] = updatedItem;
     setRecognizedItems(updatedItems);
+    
+    setActionHistory(prev => [
+      ...prev, 
+      { type: 'update', item: updatedItem, index, previousValue }
+    ]);
+    
+    if (autoAdvance && index < recognizedItems.length - 1) {
+      setTimeout(() => {
+        setSelectedItemIndex(index + 1);
+      }, 300);
+    }
   };
 
   const removeRecognizedItem = (index: number) => {
+    const itemToRemove = recognizedItems[index];
+    
     const updatedItems = recognizedItems.filter((_, i) => i !== index);
     setRecognizedItems(updatedItems);
-    toast.success("Item removed from list");
+    
+    if (selectedItemIndex === index) {
+      setSelectedItemIndex(null);
+    } else if (selectedItemIndex !== null && selectedItemIndex > index) {
+      setSelectedItemIndex(selectedItemIndex - 1);
+    }
+    
+    setActionHistory(prev => [
+      ...prev, 
+      { type: 'remove', item: itemToRemove, index }
+    ]);
+    
+    toast.success("Item removed from list", {
+      action: {
+        label: "Undo",
+        onClick: () => undoLastAction()
+      }
+    });
+  };
+  
+  const undoLastAction = () => {
+    const lastAction = actionHistory[actionHistory.length - 1];
+    
+    if (!lastAction) return;
+    
+    switch (lastAction.type) {
+      case 'update':
+        if (lastAction.previousValue) {
+          const updatedItems = [...recognizedItems];
+          updatedItems[lastAction.index] = lastAction.previousValue;
+          setRecognizedItems(updatedItems);
+        }
+        break;
+        
+      case 'remove':
+        const newItems = [...recognizedItems];
+        newItems.splice(lastAction.index, 0, lastAction.item);
+        setRecognizedItems(newItems);
+        break;
+        
+      case 'select':
+        setSelectedItemIndex(lastAction.index);
+        break;
+    }
+    
+    setActionHistory(prev => prev.slice(0, -1));
+    toast.success("Action undone");
   };
 
   const resetCapture = () => {
@@ -219,6 +283,7 @@ export const useScanAnalysis = (products: Product[]) => {
     setAnalysisResult(null);
     setRecognizedItems([]);
     setSelectedItemIndex(null);
+    setActionHistory([]);
   };
 
   const goToAddProduct = () => {
@@ -240,45 +305,48 @@ export const useScanAnalysis = (products: Product[]) => {
     );
   };
 
-  const addToInventory = async (item: InventoryRecognitionResult) => {
-    try {
-      toast.loading(`Adding "${item.name}" to inventory...`);
-      
-      // Create a new product
-      const newProduct = await addProduct({
-        name: item.name,
-        category: "Other", // Default category
-        unit: "each", // Default unit
-        currentStock: item.count,
-        reorderPoint: 5, // Default reorder point
-        cost: 0, // Default cost
-        size: item.size
-      });
-
-      // Update the recognized item with the new product ID
-      const updatedItems = recognizedItems.map(existingItem => {
-        if (existingItem.name === item.name) {
-          return { ...existingItem, productId: newProduct.id };
+  const selectItem = (index: number) => {
+    const previousIndex = selectedItemIndex;
+    if (previousIndex !== null) {
+      setActionHistory(prev => [
+        ...prev, 
+        { 
+          type: 'select', 
+          index: previousIndex,
+          item: recognizedItems[previousIndex]
         }
-        return existingItem;
+      ]);
+    }
+    
+    setSelectedItemIndex(index);
+  };
+
+  const openAddProductDialog = (item: InventoryRecognitionResult) => {
+    setCurrentItemToAdd(item);
+    setProductFormOpen(true);
+  };
+
+  const handleProductAdded = (newProduct: Product) => {
+    if (currentItemToAdd) {
+      const updatedItems = recognizedItems.map(item => {
+        if (item.name.toLowerCase().trim() === currentItemToAdd.name.toLowerCase().trim()) {
+          return { ...item, productId: newProduct.id };
+        }
+        return item;
       });
       
       setRecognizedItems(updatedItems);
-      
-      toast.dismiss();
-      toast.success(`"${item.name}" added to inventory`);
-      
-      return newProduct;
-    } catch (error) {
-      console.error("Error adding item to inventory:", error);
-      toast.dismiss();
-      toast.error("Failed to add item to inventory");
-      return null;
     }
+    
+    setProductFormOpen(false);
+    setCurrentItemToAdd(null);
+    
+    toast.success(`"${newProduct.name}" added to inventory`);
   };
 
-  const selectItem = (index: number) => {
-    setSelectedItemIndex(index);
+  const addToInventory = async (item: InventoryRecognitionResult) => {
+    openAddProductDialog(item);
+    return null;
   };
 
   return {
@@ -301,7 +369,14 @@ export const useScanAnalysis = (products: Product[]) => {
     goToAddProduct,
     handleFileSelected,
     checkIfItemExists,
-    addToInventory
+    addToInventory,
+    productFormOpen,
+    setProductFormOpen,
+    currentItemToAdd,
+    handleProductAdded,
+    undoLastAction,
+    autoAdvance,
+    setAutoAdvance
   };
 };
 
