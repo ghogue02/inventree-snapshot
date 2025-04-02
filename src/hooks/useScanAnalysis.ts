@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI, analyzeShelfImage, addInventoryCounts, addProduct } from "@/services/apiService";
+import { analyzeImageWithOpenAI, analyzeShelfImage, addInventoryCounts, addProduct, processInventoryVideo } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
 
 export const useScanAnalysis = (products: Product[]) => {
