@@ -1,15 +1,6 @@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const getOpenAIKey = () => {
-  const key = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!key) {
-    console.error('OpenAI API key not configured');
-    return null;
-  }
-  return key.trim();
-};
-
 const getCategorySpecificPrompt = (productName: string, category: string): string => {
   const basePrompt = "A professional, clean product photo";
   
@@ -31,38 +22,22 @@ const getCategorySpecificPrompt = (productName: string, category: string): strin
 
 export const generateProductImage = async (productName: string, category: string): Promise<string | null> => {
   try {
-    const apiKey = getOpenAIKey();
-    if (!apiKey) {
-      toast.error("API configuration error");
-      return null;
-    }
-
     const prompt = getCategorySpecificPrompt(productName, category);
     
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "standard",
-        response_format: "url"
-      })
+    // Call Supabase Edge Function instead of OpenAI directly
+    const { data, error } = await supabase.functions.invoke('generate-image', {
+      body: { prompt, productName, category }
     });
 
-    if (!response.ok) {
-      throw new Error(`Image generation failed`);
+    if (error) {
+      throw new Error(error.message);
     }
 
-    const data = await response.json();
-    const imageUrl = data.data[0].url;
+    if (!data?.imageUrl) {
+      throw new Error('No image URL returned');
+    }
 
-    const imageResponse = await fetch(imageUrl);
+    const imageResponse = await fetch(data.imageUrl);
     if (!imageResponse.ok) {
       throw new Error(`Failed to fetch generated image`);
     }
@@ -75,7 +50,6 @@ export const generateProductImage = async (productName: string, category: string
     reader.readAsDataURL(imageBlob);
     const base64Data = await base64Promise;
 
-    const fileName = `${productName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
     return base64Data;
 
   } catch (error) {
@@ -86,12 +60,6 @@ export const generateProductImage = async (productName: string, category: string
 
 export const generateAllProductImages = async (products: { id: string; name: string; category: string; image: string | null; }[]): Promise<void> => {
   try {
-    const apiKey = getOpenAIKey();
-    if (!apiKey) {
-      toast.error("API configuration error");
-      return;
-    }
-
     const productsNeedingImages = products.filter(product => !product.image);
     
     if (productsNeedingImages.length === 0) {

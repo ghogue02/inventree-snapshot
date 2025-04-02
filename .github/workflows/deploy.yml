@@ -31,7 +31,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NODE_ENV: production
 
       - name: Configure MIME Types
