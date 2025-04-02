@@ -1,17 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { InventoryRecognitionResult } from "@/types/inventory";
-
-// Check for OpenAI API key in environment variables or config
-const getOpenAIAPIKey = async (): Promise<string | null> => {
-  // Try to get from environment variables first (GitHub Secrets)
-  if (import.meta.env.VITE_OPENAI_API_KEY) {
-    return import.meta.env.VITE_OPENAI_API_KEY;
-  }
-  
-  // Otherwise, we assume it's set in Supabase Edge Functions Secrets
-  return null;
-};
 
 // OpenAI Vision API Integration
 export const analyzeImageWithOpenAI = async (imageBase64: string, prompt: string): Promise<string> => {

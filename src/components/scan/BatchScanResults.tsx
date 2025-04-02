@@ -1,14 +1,13 @@
 
-import React from "react";
-import { InventoryRecognitionResult, Product } from "@/types/inventory";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import ItemSuggestionList from "./item-suggestion/ItemSuggestionList";
-import { Undo } from "lucide-react";
+import { Check, RefreshCw, Plus } from "lucide-react";
+import { InventoryRecognitionResult, Product } from "@/types/inventory";
+import ItemSuggestionList from "./ItemSuggestionList";
 
 interface BatchScanResultsProps {
-  analysisResult: string;
+  analysisResult: string | null;
   recognizedItems: InventoryRecognitionResult[];
   products: Product[];
   onSaveInventoryCounts: () => void;
@@ -17,10 +16,7 @@ interface BatchScanResultsProps {
   onUpdateItem: (index: number, item: InventoryRecognitionResult) => void;
   onRemoveItem: (index: number) => void;
   onAddToInventory?: (item: InventoryRecognitionResult) => Promise<Product | null>;
-  checkIfItemExists: (name: string) => Product | undefined;
-  selectedItemIndex: number | null;
-  onSelectItem: (index: number) => void;
-  onUndoLastAction?: () => void;
+  checkIfItemExists?: (name: string) => Product | undefined;
 }
 
 const BatchScanResults = ({
@@ -33,50 +29,53 @@ const BatchScanResults = ({
   onUpdateItem,
   onRemoveItem,
   onAddToInventory,
-  checkIfItemExists,
-  selectedItemIndex,
-  onSelectItem,
-  onUndoLastAction
+  checkIfItemExists
 }: BatchScanResultsProps) => {
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h4 className="text-sm font-bold">Analysis Result</h4>
-        <p className="text-muted-foreground text-sm">{analysisResult}</p>
-      </div>
-
-      <ItemSuggestionList
-        items={recognizedItems}
-        products={products}
-        onUpdateItem={onUpdateItem}
-        onRemoveItem={onRemoveItem}
-        onAddToInventory={onAddToInventory}
-        selectedItemIndex={selectedItemIndex}
-        onSelectItem={onSelectItem}
-      />
-
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onResetCapture}>
-            Reset
-          </Button>
-          {onUndoLastAction && (
-            <Button variant="outline" onClick={onUndoLastAction} className="flex items-center gap-1">
-              <Undo className="h-4 w-4" />
-              Undo
+    <Card className="mt-6">
+      <CardContent className="p-6">
+        <h3 className="text-lg font-semibold mb-4">AI Shelf Analysis</h3>
+        
+        {recognizedItems.length > 0 ? (
+          <div className="space-y-6">
+            <ItemSuggestionList 
+              items={recognizedItems}
+              products={products}
+              onUpdateItem={onUpdateItem}
+              onRemoveItem={onRemoveItem}
+              onAddToInventory={onAddToInventory}
+              selectedItemIndex={selectedItemIndex}
+              onSelectItem={setSelectedItemIndex}
+            />
+            
+            <div className="flex flex-wrap gap-3 justify-end">
+              <Button onClick={onSaveInventoryCounts} variant="default">
+                <Check className="mr-2 h-4 w-4" />
+                Save Inventory Counts
+              </Button>
+              <Button onClick={onGoToAddProduct} variant="secondary">
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Product
+              </Button>
+              <Button onClick={onResetCapture} variant="outline">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Scan Again
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-6">
+            <p className="text-muted-foreground">No items detected</p>
+            <Button onClick={onResetCapture} variant="outline" className="mt-4">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
             </Button>
-          )}
-        </div>
-        <div>
-          <Button variant="secondary" onClick={onGoToAddProduct}>
-            Add Product
-          </Button>
-          <Button className={cn("ml-2")} onClick={onSaveInventoryCounts}>
-            Save Counts
-          </Button>
-        </div>
-      </div>
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
