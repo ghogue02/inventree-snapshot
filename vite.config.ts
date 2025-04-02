@@ -20,7 +20,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     minify: true,
-    reportCompressedSize: true,
+    reportCompressedSize: false,
     rollupOptions: {
       output: {
         manualChunks: {

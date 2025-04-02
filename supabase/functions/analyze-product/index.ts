@@ -21,7 +21,7 @@ serve(async (req) => {
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not configured');
+      throw new Error('Configuration error');
     }
 
     console.log('Processing product analysis request');
@@ -57,9 +57,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new Error('Analysis failed');
     }
 
     const data = await response.json();
@@ -83,7 +81,7 @@ serve(async (req) => {
           productData.name = `${productData.name} (${productData.size})`;
         }
       } else {
-        throw new Error("No JSON found in the response");
+        throw new Error("Invalid response format");
       }
     } catch (error) {
       console.error('Error parsing product data:', error);
@@ -109,7 +107,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-product function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Analysis failed' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

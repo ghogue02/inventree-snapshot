@@ -21,7 +21,7 @@ serve(async (req) => {
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key is not configured');
+      throw new Error('Configuration error');
     }
 
     console.log('Processing image analysis request');
@@ -57,9 +57,7 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error('Analysis failed');
     }
 
     const data = await response.json();
@@ -74,7 +72,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-image function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Analysis failed' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
