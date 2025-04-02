@@ -72,10 +72,14 @@ const CameraView = ({
         autoPlay 
         playsInline
         muted
-        className="w-full h-full object-contain"
+        className="w-full h-full object-cover bg-black"
         style={{
           width: '100%',
-          height: '100%'
+          height: '100%',
+          display: 'block',
+          position: 'absolute',
+          top: 0,
+          left: 0
         }}
       />
       

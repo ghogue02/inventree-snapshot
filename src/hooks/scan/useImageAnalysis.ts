@@ -52,6 +52,7 @@ export const useImageAnalysis = () => {
       
       if (scanMode === 'shelf') {
         const result = await analyzeShelfImage(imageToAnalyze);
+        console.log("Shelf Analysis Raw Result:", result);
         
         if (result && result.items) {
           const enhancedItems = result.items.map(item => {
@@ -69,19 +70,29 @@ export const useImageAnalysis = () => {
           
           setRecognizedItems(enhancedItems);
           setAnalysisResult("Shelf analysis complete. Here are the detected items:");
+          console.log("Shelf Analysis State Set:", { analysisResult: "Shelf analysis complete...", recognizedItems: enhancedItems });
+        } else {
+          setRecognizedItems([]);
+          setAnalysisResult("Shelf analysis returned no items.");
+          console.log("Shelf Analysis State Set (No Items):", { analysisResult: "Shelf analysis returned no items.", recognizedItems: [] });
         }
       } else {
         try {
-          const result = await analyzeImageWithOpenAI(
+          const resultText = await analyzeImageWithOpenAI(
             imageToAnalyze,
             "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
           );
+          console.log("Single Item Analysis Raw Text:", resultText);
           
-          setAnalysisResult(result);
+          setAnalysisResult(resultText);
           
-          if (products) {
-            const extractedItems = extractItemsFromAnalysis(result, products);
+          if (products && resultText) {
+            const extractedItems = extractItemsFromAnalysis(resultText, products);
             setRecognizedItems(extractedItems);
+            console.log("Single Item State Set:", { analysisResult: resultText, recognizedItems: extractedItems });
+          } else {
+            setRecognizedItems([]);
+            console.log("Single Item State Set (No Items/Products):", { analysisResult: resultText, recognizedItems: [] });
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -127,6 +138,7 @@ export const useImageAnalysis = () => {
   };
 
   const extractItemsFromAnalysis = (analysisText: string, products: Product[]): InventoryRecognitionResult[] => {
+    console.log('Extracting items from analysisText:', analysisText);
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
     
@@ -136,54 +148,54 @@ export const useImageAnalysis = () => {
     
     for (const line of lines) {
       const nameLine = line.match(/product name:?\s*(.+)/i);
-      if (nameLine) {
+      if (nameLine && nameLine[1].trim()) {
         currentProductName = nameLine[1].trim();
+        console.log(`Found name: ${currentProductName}`);
+        continue;
       }
       
       const sizeLine = line.match(/size\s*\/?\s*volume:?\s*(.+)/i);
-      if (sizeLine) {
+      if (sizeLine && sizeLine[1].trim()) {
         currentSize = sizeLine[1].trim();
+        console.log(`Found size: ${currentSize}`);
       }
       
-      const quantityLine = line.match(/quantity:?\s*(\d+)/i);
-      if (quantityLine) {
-        currentQuantity = parseInt(quantityLine[1], 10);
+      const quantityLine = line.match(/quantity:?\s*(\d+(\.\d+)?)/i);
+      if (quantityLine && quantityLine[1]) {
+        currentQuantity = parseFloat(quantityLine[1]);
+        console.log(`Found quantity: ${currentQuantity}`);
       }
       
-      if (currentProductName && 
-         (nameLine || sizeLine || quantityLine || line.trim().length === 0 || 
-          line.includes("No other") || line.includes("visible"))) {
-        
+      if (currentProductName && (sizeLine || quantityLine || line.trim().length === 0 || line.match(/item\s*\d+:/i))) {
         const matchedProduct = checkIfItemExists(currentProductName, products);
+        console.log(`Attempting to add item: ${currentProductName}, Size: ${currentSize}, Qty: ${currentQuantity}, Match: ${matchedProduct?.id}`);
+        items.push({
+          productId: matchedProduct?.id || "",
+          name: currentProductName,
+          count: currentQuantity || 1,
+          confidence: 0.9,
+          size: currentSize || undefined
+        });
         
-        if (currentProductName) {
-          items.push({
-            productId: matchedProduct?.id || "",
-            name: currentProductName,
-            count: currentQuantity || 1,
-            confidence: 0.9,
-            size: currentSize
-          });
-          
-          currentProductName = "";
-          currentSize = "";
-          currentQuantity = 1;
-        }
+        currentProductName = "";
+        currentSize = "";
+        currentQuantity = 1;
       }
     }
     
     if (currentProductName) {
       const matchedProduct = checkIfItemExists(currentProductName, products);
-      
+      console.log(`Adding final item: ${currentProductName}, Size: ${currentSize}, Qty: ${currentQuantity}, Match: ${matchedProduct?.id}`);
       items.push({
         productId: matchedProduct?.id || "",
         name: currentProductName,
-        count: currentQuantity,
+        count: currentQuantity || 1,
         confidence: 0.9,
-        size: currentSize
+        size: currentSize || undefined
       });
     }
     
+    console.log('Extracted items result:', items);
     return items;
   };
 
