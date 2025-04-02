@@ -3,3 +3,4 @@ export * from './api/productService';
 export * from './api/invoiceService';
 export * from './api/inventoryService';
 export * from './api/visionService';
+export * from './api/imageService';

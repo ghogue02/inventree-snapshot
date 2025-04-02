@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/inventory";
-import { Search, Plus, Trash2, Pencil, X, Check, Database } from "lucide-react";
+import { Search, Plus, Trash2, Pencil, X, Check, Database, Image } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getProducts, updateProduct, deleteProduct, loadMockProducts } from "@/services/apiService";
+import { getProducts, updateProduct, deleteProduct, loadMockProducts, generateAllProductImages } from "@/services/apiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 const Inventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -33,6 +34,18 @@ const Inventory = () => {
       console.error("Error loading mock data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateImages = async () => {
+    setIsGeneratingImages(true);
+    try {
+      await generateAllProductImages(products);
+      queryClient.invalidateQueries(["products"]);
+    } catch (error) {
+      console.error("Error generating images:", error);
+    } finally {
+      setIsGeneratingImages(false);
     }
   };
   
@@ -68,6 +81,10 @@ const Inventory = () => {
             />
           </div>
           <div className="flex gap-2">
+            <Button onClick={handleGenerateImages} disabled={isGeneratingImages || products.length === 0}>
+              <Image className="mr-2 h-4 w-4" />
+              Generate Images
+            </Button>
             <Button onClick={handleLoadMockData} disabled={isLoading}>
               <Database className="mr-2 h-4 w-4" />
               Load Sample Data
@@ -307,9 +324,17 @@ const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isLowStock ? 'bg-orange-100 text-orange-500' : 'bg-blue-100 text-blue-500'}`}>
-          {product.name.charAt(0).toUpperCase()}
-        </div>
+        {product.image ? (
+          <img 
+            src={product.image} 
+            alt={product.name}
+            className="h-10 w-10 rounded-full object-cover"
+          />
+        ) : (
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isLowStock ? 'bg-orange-100 text-orange-500' : 'bg-blue-100 text-blue-500'}`}>
+            {product.name.charAt(0).toUpperCase()}
+          </div>
+        )}
         <div>
           <h3 className="font-medium text-sm">{product.name}</h3>
           <p className="text-xs text-muted-foreground">
