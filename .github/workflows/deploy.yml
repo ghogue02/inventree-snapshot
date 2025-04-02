@@ -37,9 +37,9 @@ jobs:
         run: |
           cat > ./dist/_headers << EOL
           /*.js
-            Content-Type: text/javascript
+            Content-Type: application/javascript
           /*.mjs
-            Content-Type: text/javascript
+            Content-Type: application/javascript
           /*.js.map
             Content-Type: application/json
           /*
