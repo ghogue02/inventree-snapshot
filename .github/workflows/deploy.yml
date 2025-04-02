@@ -5,64 +5,28 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: github-pages
-    env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      DEBUG: vite:*
-      NODE_ENV: production
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
 
-      - name: Install dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install -g typescript
-          npm install rollup@4.9.6 --save-dev
-          NODE_ENV=development npm install --legacy-peer-deps
-          npm list vite
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
         env:
-          NODE_ENV: development
+          VITE_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: npm run build
 
-      - name: Build project
-        run: |
-          echo "Starting build..."
-          npm run build
-          echo "Build complete. Checking dist directory:"
-          ls -la dist/
-        env:
-          NODE_ENV: production
-          NODE_OPTIONS: "--trace-warnings"
-          DEBUG: "vite:*"
-          BASE_URL: "/inventree-snapshot/"
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist 
