@@ -31,8 +31,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci || npm ci --legacy-peer-deps
+          NODE_ENV=development npm ci || NODE_ENV=development npm install --legacy-peer-deps
           npm list vite
+        env:
+          NODE_ENV: development
 
       - name: Pre-build environment check
         run: |
@@ -56,7 +58,7 @@ jobs:
       - name: Build project with debug
         run: |
           echo "Starting build with maximum verbosity..."
-          npm run build || {
+          NODE_ENV=production npm run build || {
             echo "Build failed. Checking for error logs..."
             find . -name "*.log" -type f -exec cat {} \;
             exit 1
@@ -64,6 +66,7 @@ jobs:
           echo "Build complete. Checking dist directory:"
           ls -la dist/
         env:
+          NODE_ENV: production
           NODE_OPTIONS: "--trace-warnings --verbose"
           DEBUG: "*"
 
