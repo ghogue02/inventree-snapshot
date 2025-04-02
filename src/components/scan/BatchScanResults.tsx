@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, RefreshCw, Plus, Save } from "lucide-react";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import ItemSuggestionList from "./ItemSuggestionList";
+import ItemSuggestionList from "./item-suggestion/ItemSuggestionList";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface BatchScanResultsProps {
@@ -98,7 +97,6 @@ const BatchScanResults = ({
           </div>
         )}
         
-        {/* Add padding at the bottom for mobile devices to account for the fixed buttons */}
         {isMobile && recognizedItems.length > 0 && <div className="h-20"></div>}
       </CardContent>
     </Card>
