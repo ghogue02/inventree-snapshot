@@ -1,8 +1,9 @@
 
-import { useState, useRef } from "react";
-import { Camera, Loader2, RefreshCw } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Camera, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CameraCaptureProps {
   capturedImage: string | null;
@@ -21,9 +22,21 @@ const CameraCapture = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Clean up by stopping camera stream when component unmounts
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const startCamera = async () => {
     try {
+      setCameraError(null);
+      
       const constraints = {
         video: {
           facingMode: "environment",
@@ -37,9 +50,23 @@ const CameraCapture = ({
         mediaStreamRef.current = stream;
         setIsCapturing(true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error starting camera:", error);
-      toast.error("Failed to access camera");
+      
+      let errorMessage = "Failed to access camera";
+      
+      if (error.name === "NotFoundError") {
+        errorMessage = "No camera detected on this device or browser";
+      } else if (error.name === "NotAllowedError") {
+        errorMessage = "Camera access was denied. Please allow camera permissions to continue.";
+      } else if (error.name === "AbortError") {
+        errorMessage = "Camera access was aborted. Please try again.";
+      } else if (error.name === "NotReadableError") {
+        errorMessage = "Camera is in use by another application.";
+      }
+      
+      setCameraError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -73,35 +100,71 @@ const CameraCapture = ({
 
   return (
     <div className="space-y-4">
-      <div className="video-container bg-gray-100 rounded-md">
+      <div className="video-container bg-gray-100 rounded-md min-h-[200px] flex items-center justify-center relative">
         {!capturedImage ? (
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline
-            className={isCapturing ? "opacity-100" : "opacity-0"}
-            onLoadedMetadata={() => {
-              if (videoRef.current) {
-                videoRef.current.classList.remove("opacity-0");
-                videoRef.current.classList.add("opacity-100");
-              }
-            }}
-          />
+          <>
+            {cameraError ? (
+              <div className="text-center p-4">
+                <AlertTriangle className="mx-auto h-12 w-12 text-amber-500 mb-2" />
+                <p className="text-muted-foreground">{cameraError}</p>
+              </div>
+            ) : (
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline
+                className={isCapturing ? "w-full h-full object-cover rounded-md" : "hidden"}
+                onLoadedMetadata={() => {
+                  if (videoRef.current) {
+                    videoRef.current.classList.remove("opacity-0");
+                    videoRef.current.classList.add("opacity-100");
+                  }
+                }}
+              />
+            )}
+            {!isCapturing && !cameraError && (
+              <div className="text-center p-4">
+                <p className="text-muted-foreground mb-2">Click the button below to start camera</p>
+                <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
+              </div>
+            )}
+          </>
         ) : (
           <img 
             src={capturedImage} 
             alt="Captured inventory" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain rounded-md"
           />
         )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
+      {cameraError && (
+        <Alert variant="destructive" className="bg-red-50">
+          <AlertDescription className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            {cameraError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex justify-center gap-2">
         {!isCapturing && !capturedImage && (
-          <Button onClick={startCamera}>
-            <Camera className="mr-2 h-4 w-4" />
-            Start Camera
+          <Button 
+            onClick={startCamera} 
+            className={cameraError ? "bg-amber-600 hover:bg-amber-700" : ""}
+          >
+            {cameraError ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-4 w-4" />
+                Start Camera
+              </>
+            )}
           </Button>
         )}
 
