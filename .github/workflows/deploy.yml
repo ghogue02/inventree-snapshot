@@ -31,6 +31,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          npm install -g ts-node typescript
           NODE_ENV=development npm ci || NODE_ENV=development npm install --legacy-peer-deps
           npm list vite
         env:
@@ -53,7 +54,7 @@ jobs:
           echo "=== Environment Variables ==="
           env | grep -v -i "key" | grep -v -i "token" | grep -v -i "secret"
           echo "=== Test Vite Config ==="
-          node -e "import('./vite.config.ts').then(m => console.log(m.default))"
+          ts-node -e "import('./vite.config.ts').then(m => console.log(m.default))"
 
       - name: Build project with debug
         run: |
