@@ -262,70 +262,102 @@ export const loadMockInvoices = async (): Promise<void> => {
     // Create products for each unique item and store their IDs
     const productMap = new Map<string, string>();
     for (const productName of uniqueProducts) {
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .insert({
-          name: productName,
-          category: 'Other',
-          unit: 'each',
-          current_stock: 0,
-          reorder_point: 5,
-          cost: 0
-        })
-        .select()
-        .single();
+      try {
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .insert({
+            name: productName,
+            category: 'Other',
+            unit: 'each',
+            current_stock: 0,
+            reorder_point: 5,
+            cost: 0
+          })
+          .select()
+          .single();
+          
+        if (productError) {
+          console.error('Error creating product:', productError);
+          toast.error(`Failed to create product: ${productName}`);
+          continue;
+        }
         
-      if (productError) {
-        console.error('Error creating product:', productError);
-        continue;
+        if (productData) {
+          productMap.set(productName, productData.id);
+        }
+      } catch (error) {
+        console.error(`Error creating product ${productName}:`, error);
+        toast.error(`Failed to create product: ${productName}`);
       }
-      
-      productMap.set(productName, productData.id);
     }
     
     // Process each invoice
     for (const mockInvoice of mockInvoices) {
-      // First create the invoice
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          supplier_name: mockInvoice.supplier,
-          invoice_number: mockInvoice.invoiceNumber,
-          date: mockInvoice.date,
-          total: mockInvoice.total,
-          paid_status: 'paid',
-          image_url: null
-        })
-        .select()
-        .single();
+      try {
+        // Validate that we have product IDs for all items
+        const validItems = mockInvoice.items.filter(item => {
+          const productId = productMap.get(item.name);
+          if (!productId) {
+            console.warn(`Skipping item ${item.name} - no product ID found`);
+          }
+          return !!productId;
+        });
         
-      if (invoiceError) {
-        console.error('Error creating mock invoice:', invoiceError);
-        toast.error(`Failed to create invoice ${mockInvoice.invoiceNumber}`);
-        continue;
-      }
-      
-      const invoiceId = invoiceData.id;
-      
-      // Then create all invoice items with product IDs
-      const itemsToInsert = mockInvoice.items.map(item => ({
-        invoice_id: invoiceId,
-        product_id: productMap.get(item.name) || null,
-        quantity: item.quantity,
-        unit_price: item.pricePerUnit,
-        total: item.total
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('invoice_items')
-        .insert(itemsToInsert);
+        if (validItems.length === 0) {
+          console.error('No valid items found for invoice:', mockInvoice.invoiceNumber);
+          continue;
+        }
         
-      if (itemsError) {
-        console.error('Error adding mock invoice items:', itemsError);
-        // Clean up the invoice if items failed
-        await supabase.from('invoices').delete().eq('id', invoiceId);
-        toast.error(`Failed to add items for invoice ${mockInvoice.invoiceNumber}`);
-        continue;
+        // Calculate total from valid items only
+        const total = validItems.reduce((sum, item) => sum + item.total, 0);
+        
+        // Create the invoice
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from('invoices')
+          .insert({
+            supplier_name: mockInvoice.supplier,
+            invoice_number: mockInvoice.invoiceNumber,
+            date: mockInvoice.date,
+            total: total,
+            paid_status: 'paid',
+            image_url: null
+          })
+          .select()
+          .single();
+          
+        if (invoiceError) {
+          console.error('Error creating mock invoice:', invoiceError);
+          toast.error(`Failed to create invoice ${mockInvoice.invoiceNumber}`);
+          continue;
+        }
+        
+        const invoiceId = invoiceData.id;
+        
+        // Create invoice items only for products that exist
+        const itemsToInsert = validItems.map(item => ({
+          invoice_id: invoiceId,
+          product_id: productMap.get(item.name)!,
+          quantity: item.quantity,
+          unit_price: item.pricePerUnit,
+          total: item.total
+        }));
+        
+        const { error: itemsError } = await supabase
+          .from('invoice_items')
+          .insert(itemsToInsert);
+          
+        if (itemsError) {
+          console.error('Error adding mock invoice items:', itemsError);
+          // Clean up the invoice if items failed
+          await supabase.from('invoices').delete().eq('id', invoiceId);
+          toast.error(`Failed to add items for invoice ${mockInvoice.invoiceNumber}`);
+          continue;
+        }
+        
+        toast.success(`Invoice ${mockInvoice.invoiceNumber} created successfully`);
+      } catch (error) {
+        console.error(`Error processing invoice ${mockInvoice.invoiceNumber}:`, error);
+        toast.error(`Failed to process invoice ${mockInvoice.invoiceNumber}`);
       }
     }
     
