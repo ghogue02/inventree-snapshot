@@ -34,12 +34,12 @@ const RecognizedItemsList = ({
               const isInInventory = !!existingProduct || !!item.productId;
 
               return (
-                <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-md">
-                  <div className="flex-1">
+                <div key={index} className="flex flex-col gap-3 p-2 bg-gray-50 rounded-md">
+                  <div className="w-full">
                     <Input
                       value={item.name}
                       onChange={(e) => onUpdateItem(index, { ...item, name: e.target.value })}
-                      className="mb-1"
+                      className="mb-1 w-full min-w-0 break-words"
                     />
                     <div className="text-sm text-gray-500">
                       Size: {item.size || 'N/A'} | Count: {item.count} | 
@@ -51,7 +51,7 @@ const RecognizedItemsList = ({
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 justify-end">
                     {!isInInventory && (
                       <Button
                         variant="outline"
