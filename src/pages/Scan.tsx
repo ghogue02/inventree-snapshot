@@ -1,39 +1,24 @@
+
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
 import useScanAnalysis from "@/hooks/useScanAnalysis";
-import CameraCapture from "@/components/scan/CameraCapture";
-import VideoUploader from "@/components/scan/VideoUploader";
-import AnalysisResults from "@/components/scan/AnalysisResults";
-import BatchScanResults from "@/components/scan/BatchScanResults";
 import ProductFormDialog from "@/components/scan/ProductFormDialog";
-import { Camera, Scan as ScanIcon, RefreshCcw, WifiOff } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { syncPendingData } from "@/services/syncService";
 import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/offlineStore";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { syncPendingData } from "@/services/syncService";
+import ScanHeader from "@/components/scan/ScanHeader";
+import CameraScanTab from "@/components/scan/CameraScanTab";
+import VideoScanTab from "@/components/scan/VideoScanTab";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
   const isMobile = useIsMobile();
-  const { isOnline, connectionStatus } = useConnectivity();
-  const pendingCounts = useOfflineStore(
-    state => state.pendingInventoryCounts.filter(c => !c.synced).length
-  );
-  const pendingImages = useOfflineStore(
-    state => state.pendingImageRequests.filter(r => !r.processed).length
-  );
-  
   const [isSyncing, setIsSyncing] = useState(false);
-
+  
   const { data: products = [], refetch: refetchProducts } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts
@@ -92,12 +77,39 @@ const Scan = () => {
   };
   
   useEffect(() => {
-    if (isOnline && (pendingCounts > 0 || pendingImages > 0)) {
-      syncPendingData()
-        .then(() => refetchProducts())
-        .catch(err => console.error("Auto sync error:", err));
+    if (isMobile && tab === "camera") {
+      // Set body overflow to hidden when camera is active on mobile
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
-  }, [isOnline, pendingCounts, pendingImages, refetchProducts]);
+    
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobile, tab]);
+  
+  useEffect(() => {
+    const attemptAutoSync = async () => {
+      try {
+        await syncPendingData();
+        await refetchProducts();
+      } catch (err) {
+        console.error("Auto sync error:", err);
+      }
+    };
+    
+    // Check for pending items in offline store
+    const pendingCounts = useOfflineStore.getState().pendingInventoryCounts.filter(c => !c.synced).length;
+    const pendingImages = useOfflineStore.getState().pendingImageRequests.filter(r => !r.processed).length;
+    
+    if (pendingCounts > 0 || pendingImages > 0) {
+      const { isOnline } = useConnectivity.getState();
+      if (isOnline) {
+        attemptAutoSync();
+      }
+    }
+  }, [refetchProducts]);
 
   return (
     <Layout 
@@ -105,30 +117,7 @@ const Scan = () => {
       description="Use your camera to automatically count inventory items"
     >
       <div className={`${isMobile ? 'p-0 sm:p-2' : 'p-6'}`}>
-        {(pendingCounts > 0 || pendingImages > 0) && (
-          <Alert variant={isOnline ? "default" : "destructive"} className="mb-4 bg-amber-50">
-            <AlertDescription className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                {!isOnline && <WifiOff className="h-4 w-4" />}
-                <span>
-                  {isOnline 
-                    ? `You have ${pendingCounts + pendingImages} items waiting to sync`
-                    : `You're offline with ${pendingCounts + pendingImages} pending items`}
-                </span>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1"
-                disabled={!isOnline || isSyncing}
-                onClick={handleSync}
-              >
-                <RefreshCcw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Syncing...' : 'Sync Now'}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        <ScanHeader onSyncData={handleSync} isSyncing={isSyncing} />
         
         <Tabs defaultValue="camera" value={tab} onValueChange={setTab}>
           <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -136,105 +125,50 @@ const Scan = () => {
             <TabsTrigger value="upload">Upload Video</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="camera" className="space-y-4">
-            <Card className={isMobile ? "overflow-hidden shadow-sm border-0 sm:border" : ""}>
-              <CardContent className={isMobile ? "p-0 sm:p-3" : "p-6 space-y-4"}>
-                <div className={`flex justify-between items-center ${isMobile ? 'p-3' : 'mb-4'}`}>
-                  <ToggleGroup type="single" value={scanMode} onValueChange={(value) => value && setScanMode(value as 'single' | 'shelf')}>
-                    <ToggleGroupItem value="single" className="flex items-center gap-1">
-                      <Camera className="h-4 w-4" />
-                      Single Item
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="shelf" className="flex items-center gap-1">
-                      <ScanIcon className="h-4 w-4" />
-                      Shelf Scan
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-                  
-                  {scanMode === 'shelf' && (
-                    <div className="flex items-center space-x-2">
-                      <Switch 
-                        id="auto-advance" 
-                        checked={autoAdvance}
-                        onCheckedChange={setAutoAdvance}
-                      />
-                      <Label htmlFor="auto-advance" className="text-sm">Auto-advance</Label>
-                    </div>
-                  )}
-                </div>
-                
-                <CameraCapture 
-                  capturedImage={capturedImage}
-                  onImageCaptured={handleImageCaptured}
-                  onResetCapture={resetCapture}
-                  isAnalyzing={isAnalyzing}
-                  scanMode={scanMode}
-                />
-              </CardContent>
-            </Card>
-
-            {analysisResult && recognizedItems.length > 0 && (
-              scanMode === 'shelf' ? (
-                <BatchScanResults
-                  analysisResult={analysisResult}
-                  recognizedItems={recognizedItems}
-                  products={products}
-                  onSaveInventoryCounts={saveInventoryCounts}
-                  onGoToAddProduct={goToAddProduct}
-                  onResetCapture={resetCapture}
-                  onUpdateItem={updateRecognizedItem}
-                  onRemoveItem={removeRecognizedItem}
-                  onAddToInventory={addToInventory}
-                  checkIfItemExists={checkIfItemExists}
-                  selectedItemIndex={selectedItemIndex}
-                  onSelectItem={selectItem}
-                  onUndoLastAction={undoLastAction}
-                />
-              ) : (
-                <AnalysisResults 
-                  analysisResult={analysisResult}
-                  recognizedItems={recognizedItems}
-                  products={products}
-                  onSaveInventoryCounts={saveInventoryCounts}
-                  onGoToAddProduct={goToAddProduct}
-                  onResetCapture={resetCapture}
-                  onUpdateItem={updateRecognizedItem}
-                  onRemoveItem={removeRecognizedItem}
-                  onAddToInventory={addToInventory}
-                  checkIfItemExists={checkIfItemExists}
-                />
-              )
-            )}
+          <TabsContent value="camera">
+            <CameraScanTab
+              capturedImage={capturedImage}
+              onImageCaptured={handleImageCaptured}
+              onResetCapture={resetCapture}
+              isAnalyzing={isAnalyzing}
+              scanMode={scanMode}
+              setScanMode={setScanMode}
+              analysisResult={analysisResult}
+              recognizedItems={recognizedItems}
+              products={products}
+              onSaveInventoryCounts={saveInventoryCounts}
+              onGoToAddProduct={goToAddProduct}
+              onUpdateItem={updateRecognizedItem}
+              onRemoveItem={removeRecognizedItem}
+              onAddToInventory={addToInventory}
+              checkIfItemExists={checkIfItemExists}
+              selectedItemIndex={selectedItemIndex}
+              onSelectItem={selectItem}
+              onUndoLastAction={undoLastAction}
+              autoAdvance={autoAdvance}
+              setAutoAdvance={setAutoAdvance}
+            />
           </TabsContent>
 
           <TabsContent value="upload">
-            <Card>
-              <CardContent className={isMobile ? "p-3" : "p-6 space-y-4"}>
-                <VideoUploader 
-                  onVideoSelected={handleFileSelected}
-                  isProcessing={isUploading} 
-                  onProcessVideo={processVideo}
-                />
-
-                {recognizedItems.length > 0 && (
-                  <BatchScanResults
-                    analysisResult={analysisResult || ""}
-                    recognizedItems={recognizedItems}
-                    products={products}
-                    onSaveInventoryCounts={saveInventoryCounts}
-                    onGoToAddProduct={goToAddProduct}
-                    onResetCapture={resetCapture}
-                    onUpdateItem={updateRecognizedItem}
-                    onRemoveItem={removeRecognizedItem}
-                    onAddToInventory={addToInventory}
-                    checkIfItemExists={checkIfItemExists}
-                    selectedItemIndex={selectedItemIndex}
-                    onSelectItem={selectItem}
-                    onUndoLastAction={undoLastAction}
-                  />
-                )}
-              </CardContent>
-            </Card>
+            <VideoScanTab
+              isProcessing={isUploading}
+              onVideoSelected={handleFileSelected}
+              onProcessVideo={processVideo}
+              recognizedItems={recognizedItems}
+              products={products}
+              onSaveInventoryCounts={saveInventoryCounts}
+              onGoToAddProduct={goToAddProduct}
+              onResetCapture={resetCapture}
+              onUpdateItem={updateRecognizedItem}
+              onRemoveItem={removeRecognizedItem}
+              onAddToInventory={addToInventory}
+              checkIfItemExists={checkIfItemExists}
+              selectedItemIndex={selectedItemIndex}
+              onSelectItem={selectItem}
+              onUndoLastAction={undoLastAction}
+              analysisResult={analysisResult}
+            />
           </TabsContent>
         </Tabs>
       </div>
