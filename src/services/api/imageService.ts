@@ -1,15 +1,21 @@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+
 export const generateProductImage = async (productName: string, category: string): Promise<string | null> => {
   try {
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key is not configured');
+    }
+
     const prompt = `A professional, clean product photo of ${productName} for a restaurant inventory system. The image should be on a white background, well-lit, and show the product clearly. Category: ${category}. Style: Minimalist commercial product photography.`;
     
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "dall-e-3",
@@ -22,6 +28,8 @@ export const generateProductImage = async (productName: string, category: string
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('OpenAI API Error:', errorData);
       throw new Error(`Failed to generate image: ${response.statusText}`);
     }
 

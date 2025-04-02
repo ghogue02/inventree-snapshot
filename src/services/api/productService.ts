@@ -160,17 +160,19 @@ export const updateProducts = async (products: Product[]): Promise<void> => {
   }
 };
 
-export const loadMockProducts = async (): Promise<void> => {
+export const loadMockProducts = async () => {
   try {
-    // First, delete all existing products
+    toast.loading("Loading sample data...");
+
+    // Delete all existing products
     const { error: deleteError } = await supabase
       .from('products')
       .delete()
-      .neq('id', ''); // Delete all records
+      .not('id', 'is', null); // This is safer than .neq('id', '')
 
     if (deleteError) {
       console.error('Error deleting existing products:', deleteError);
-      toast.error("Failed to reset products");
+      toast.error("Failed to clear existing products");
       throw deleteError;
     }
 
@@ -181,21 +183,22 @@ export const loadMockProducts = async (): Promise<void> => {
         name: product.name,
         category: product.category,
         unit: product.unit,
-        current_stock: product.currentStock,
-        reorder_point: product.reorderPoint,
+        current_stock: product.current_stock,
+        reorder_point: product.reorder_point,
         cost: product.cost,
-        image: product.image
+        image: null
       })));
 
     if (insertError) {
       console.error('Error inserting mock products:', insertError);
-      toast.error("Failed to load mock products");
+      toast.error("Failed to load sample data");
       throw insertError;
     }
 
-    toast.success("Mock products loaded successfully");
+    toast.success("Sample data loaded successfully");
   } catch (error) {
     console.error('Error in loadMockProducts:', error);
+    toast.error("Failed to load sample data");
     throw error;
   }
 };
