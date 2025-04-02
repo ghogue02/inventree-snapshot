@@ -31,8 +31,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          rm -rf node_modules package-lock.json
           npm install -g typescript
-          NODE_ENV=development npm ci || NODE_ENV=development npm install --legacy-peer-deps
+          npm install rollup@4.9.6 --save-dev
+          NODE_ENV=development npm install --legacy-peer-deps
           npm list vite
         env:
           NODE_ENV: development
