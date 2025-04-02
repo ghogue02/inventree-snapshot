@@ -53,7 +53,7 @@ export const useScanAnalysis = (products: Product[]) => {
     
     let currentProductName = "";
     let currentSize = "";
-    let currentQuantity = 1;
+    let currentQuantity = 0;
     
     for (const line of lines) {
       // Extract size/volume information
@@ -79,36 +79,41 @@ export const useScanAnalysis = (products: Product[]) => {
         }
       }
       
-      // Extract quantity
-      const quantityLine = line.match(/quantity:?\s*(\d+)/i);
+      // Extract quantity - check multiple formats
+      const quantityLine = line.match(/quantity:?\s*(\d+)/i) ||
+                          line.match(/count:?\s*(\d+)/i) ||
+                          line.match(/units?:?\s*(\d+)/i);
       if (quantityLine) {
         currentQuantity = parseInt(quantityLine[1], 10);
       }
       
       // If we have a complete item, add it to the list
       if (currentProductName && 
-         (line.includes("Size/Volume:") || line.includes("Quantity:") || 
+         (line.includes("Size/Volume:") || line.includes("Quantity:") || line.includes("Count:") ||
           line.trim().length === 0 || line.includes("No other") || line.includes("visible"))) {
         
         const matchedProduct = checkIfItemExists(currentProductName);
         
-        items.push({
-          productId: matchedProduct?.id || "",
-          name: currentProductName,
-          count: currentQuantity || 1,
-          confidence: 0.9,
-          size: currentSize || ""
-        });
+        // Only add if we have a valid quantity
+        if (currentQuantity > 0) {
+          items.push({
+            productId: matchedProduct?.id || "",
+            name: currentProductName,
+            count: currentQuantity,
+            confidence: 0.9,
+            size: currentSize || ""
+          });
+        }
         
         // Reset for next item
         currentProductName = "";
         currentSize = "";
-        currentQuantity = 1;
+        currentQuantity = 0; // Reset to 0
       }
     }
     
-    // Add the last item if there is one
-    if (currentProductName) {
+    // Add the last item if there is one and has a valid quantity
+    if (currentProductName && currentQuantity > 0) {
       const matchedProduct = checkIfItemExists(currentProductName);
       
       items.push({
