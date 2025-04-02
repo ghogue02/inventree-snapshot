@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
 import useScanAnalysis from "@/hooks/useScanAnalysis";
@@ -11,10 +10,8 @@ import { useConnectivity } from "@/hooks/use-connectivity";
 import { useOfflineStore } from "@/stores/offlineStore";
 import ScanHeader from "@/components/scan/ScanHeader";
 import CameraScanTab from "@/components/scan/CameraScanTab";
-import VideoScanTab from "@/components/scan/VideoScanTab";
 
 const Scan = () => {
-  const [tab, setTab] = useState("camera");
   const isMobile = useIsMobile();
   const [isSyncing, setIsSyncing] = useState(false);
   const { isOnline } = useConnectivity();
@@ -37,12 +34,10 @@ const Scan = () => {
     selectItem,
     resetCapture,
     analyzeImage,
-    processVideo,
     saveInventoryCounts,
     updateRecognizedItem,
     removeRecognizedItem,
     goToAddProduct,
-    handleFileSelected,
     checkIfItemExists,
     addToInventory,
     productFormOpen,
@@ -75,87 +70,38 @@ const Scan = () => {
       setIsSyncing(false);
     }
   };
-  
-  useEffect(() => {
-    const attemptAutoSync = async () => {
-      try {
-        await syncPendingData();
-        await refetchProducts();
-      } catch (err) {
-        console.error("Auto sync error:", err);
-      }
-    };
-    
-    const pendingCounts = useOfflineStore.getState().pendingInventoryCounts.filter(c => !c.synced).length;
-    const pendingImages = useOfflineStore.getState().pendingImageRequests.filter(r => !r.processed).length;
-    
-    if (pendingCounts > 0 || pendingImages > 0) {
-      if (isOnline) {
-        attemptAutoSync();
-      }
-    }
-  }, [isOnline, refetchProducts]);
 
   return (
-    <Layout 
-      title="Scan Inventory" 
-      description="Use your camera to automatically count inventory items"
-    >
-      <div className={`${isMobile ? 'p-0 sm:p-2' : 'p-6'}`}>
-        <ScanHeader onSyncData={handleSync} isSyncing={isSyncing} />
+    <Layout>
+      <div className="container mx-auto p-4 space-y-4">
+        <ScanHeader
+          isOnline={isOnline}
+          isSyncing={isSyncing}
+          onSync={handleSync}
+        />
         
-        <Tabs defaultValue="camera" value={tab} onValueChange={setTab}>
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="camera">Camera Scan</TabsTrigger>
-            <TabsTrigger value="upload">Upload Video</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="camera">
-            <CameraScanTab
-              capturedImage={capturedImage}
-              onImageCaptured={handleImageCaptured}
-              onResetCapture={resetCapture}
-              isAnalyzing={isAnalyzing}
-              scanMode={scanMode}
-              setScanMode={setScanMode}
-              analysisResult={analysisResult}
-              recognizedItems={recognizedItems}
-              products={products}
-              onSaveInventoryCounts={saveInventoryCounts}
-              onGoToAddProduct={goToAddProduct}
-              onUpdateItem={updateRecognizedItem}
-              onRemoveItem={removeRecognizedItem}
-              onAddToInventory={addToInventory}
-              checkIfItemExists={checkIfItemExists}
-              selectedItemIndex={selectedItemIndex}
-              onSelectItem={selectItem}
-              onUndoLastAction={undoLastAction}
-              autoAdvance={autoAdvance}
-              setAutoAdvance={setAutoAdvance}
-            />
-          </TabsContent>
-
-          <TabsContent value="upload">
-            <VideoScanTab
-              isProcessing={isUploading}
-              onVideoSelected={handleFileSelected}
-              onProcessVideo={processVideo}
-              recognizedItems={recognizedItems}
-              products={products}
-              onSaveInventoryCounts={saveInventoryCounts}
-              onGoToAddProduct={goToAddProduct}
-              onResetCapture={resetCapture}
-              onUpdateItem={updateRecognizedItem}
-              onRemoveItem={removeRecognizedItem}
-              onAddToInventory={addToInventory}
-              checkIfItemExists={checkIfItemExists}
-              selectedItemIndex={selectedItemIndex}
-              onSelectItem={selectItem}
-              onUndoLastAction={undoLastAction}
-              analysisResult={analysisResult}
-            />
-          </TabsContent>
-        </Tabs>
+        <CameraScanTab
+          capturedImage={capturedImage}
+          onImageCaptured={handleImageCaptured}
+          onResetCapture={resetCapture}
+          isAnalyzing={isAnalyzing}
+          scanMode={scanMode}
+          setScanMode={setScanMode}
+          analysisResult={analysisResult}
+          recognizedItems={recognizedItems}
+          products={products}
+          onSaveInventoryCounts={saveInventoryCounts}
+          onGoToAddProduct={goToAddProduct}
+          onUpdateItem={updateRecognizedItem}
+          onRemoveItem={removeRecognizedItem}
+          onAddToInventory={addToInventory}
+          checkIfItemExists={checkIfItemExists}
+          selectedItemIndex={selectedItemIndex}
+          onSelectItem={selectItem}
+          onUndoLastAction={undoLastAction}
+          autoAdvance={autoAdvance}
+          setAutoAdvance={setAutoAdvance}
+        />
       </div>
       
       <ProductFormDialog
