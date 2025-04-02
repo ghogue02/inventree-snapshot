@@ -47,6 +47,7 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: "--trace-warnings"
           DEBUG: "vite:*"
+          BASE_URL: "/inventree-snapshot/"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
