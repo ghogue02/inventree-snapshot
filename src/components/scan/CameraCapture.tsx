@@ -44,6 +44,8 @@ const CameraCapture = ({
   const captureImage = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     
+    console.log("Capturing image");
+    
     // Add haptic feedback if available
     if (navigator.vibrate) {
       navigator.vibrate(50);
@@ -54,36 +56,52 @@ const CameraCapture = ({
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-    
-    if (!context) return;
-    
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const rawImageData = canvas.toDataURL("image/jpeg", 0.85);
     
     try {
+      // Set canvas size to match the actual video dimensions, not the element size
+      const videoWidth = video.videoWidth;
+      const videoHeight = video.videoHeight;
+      
+      console.log(`Capturing from video of size ${videoWidth}x${videoHeight}`);
+      
+      if (!videoWidth || !videoHeight) {
+        throw new Error("Cannot get video dimensions");
+      }
+      
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+      
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Cannot get canvas context");
+      }
+      
+      // Clear the canvas first
+      context.fillStyle = 'rgb(0, 0, 0)';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw the video frame to the canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const rawImageData = canvas.toDataURL("image/jpeg", 0.9); // Using higher quality for initial capture
+      console.log(`Raw image captured with size: ${Math.round(rawImageData.length / 1024)}KB`);
+      
       // Optimize the image before passing it up
       setIsOptimizing(true);
       
-      // Use more compression for shelf mode (likely larger scenes)
-      const quality = scanMode === 'shelf' ? 0.7 : 0.85;
-      const maxWidth = scanMode === 'shelf' ? 1280 : 1024;
+      // Use appropriate compression for mode, but higher quality than before
+      const quality = scanMode === 'shelf' ? 0.85 : 0.92;
+      const maxWidth = scanMode === 'shelf' ? 1600 : 1280;
       
+      console.log(`Optimizing image with quality ${quality} and max width ${maxWidth}`);
       const optimizedImage = await optimizeImage(rawImageData, maxWidth, maxWidth, quality);
+      console.log(`Optimized image size: ${Math.round(optimizedImage.length / 1024)}KB`);
       
       stopCamera();
       onImageCaptured(optimizedImage);
     } catch (error) {
-      console.error("Error optimizing image:", error);
-      toast.error("Failed to process image. Using original quality.");
-      stopCamera();
-      // Fall back to unoptimized image
-      onImageCaptured(rawImageData);
-    } finally {
+      console.error("Error capturing image:", error);
+      toast.error("Failed to capture image. Please try again.");
       setIsOptimizing(false);
     }
   };
@@ -100,8 +118,13 @@ const CameraCapture = ({
       <div 
         ref={videoContainerRef}
         className={`video-container bg-gray-100 rounded-md overflow-hidden relative ${
-          isCapturing && isMobile ? 'fullscreen min-h-[65vh]' : 'min-h-[280px]'
+          isCapturing && isMobile ? 'fullscreen min-h-[75vh]' : 'min-h-[350px]'
         } ${isFlashing ? 'bg-white' : ''}`}
+        style={{ 
+          width: '100%', 
+          aspectRatio: isMobile ? '3/4' : '4/3',
+          maxHeight: isMobile ? 'calc(100vh - 250px)' : '600px'
+        }}
       >
         {!capturedImage ? (
           <CameraView 

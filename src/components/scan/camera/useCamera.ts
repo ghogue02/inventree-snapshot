@@ -24,16 +24,21 @@ export function useCamera() {
       setCameraError(null);
       setIsLoading(true);
       
+      // Request camera with high resolution
       const constraints = {
         video: {
           facingMode: "environment",
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          aspectRatio: { ideal: 4/3 }
         },
         audio: false
       };
       
+      console.log("Requesting camera with constraints:", constraints);
+      
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Camera stream obtained");
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -42,12 +47,19 @@ export function useCamera() {
         // Make sure video is playing before considering it loaded
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
+            console.log("Video metadata loaded, starting playback");
             videoRef.current.play()
               .then(() => {
                 setIsCapturing(true);
                 setIsLoading(false);
                 // Initialize flash in off state
                 initializeFlash(stream, false);
+                
+                // Log the actual video dimensions for debugging
+                console.log("Video dimensions:", {
+                  videoWidth: videoRef.current?.videoWidth,
+                  videoHeight: videoRef.current?.videoHeight
+                });
               })
               .catch(error => {
                 console.error("Error playing video:", error);

@@ -12,19 +12,24 @@ export const optimizeImage = async (
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
+      console.log(`Original image dimensions: ${img.width}x${img.height}`);
+      
       // Calculate new dimensions while maintaining aspect ratio
       let width = img.width;
       let height = img.height;
       
+      // Don't upscale images that are already smaller
       if (width > maxWidth) {
-        height = (height * maxWidth) / width;
+        height = Math.floor((height * maxWidth) / width);
         width = maxWidth;
       }
       
       if (height > maxHeight) {
-        width = (width * maxHeight) / height;
+        width = Math.floor((width * maxHeight) / height);
         height = maxHeight;
       }
+      
+      console.log(`Resized dimensions: ${width}x${height}`);
       
       // Create canvas with new dimensions
       const canvas = document.createElement('canvas');
@@ -38,13 +43,17 @@ export const optimizeImage = async (
         return;
       }
       
+      // Clear canvas with white background first
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
       ctx.drawImage(img, 0, 0, width, height);
       
       // Get optimized data URL
       const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
       
       // Check if optimization actually reduced the size
-      if (optimizedDataUrl.length < imageDataUrl.length) {
+      if (optimizedDataUrl.length < imageDataUrl.length || width !== img.width || height !== img.height) {
         resolve(optimizedDataUrl);
       } else {
         // If optimization didn't help, return original
@@ -52,7 +61,8 @@ export const optimizeImage = async (
       }
     };
     
-    img.onerror = () => {
+    img.onerror = (err) => {
+      console.error('Error loading image for optimization', err);
       reject(new Error('Failed to load image for optimization'));
     };
     

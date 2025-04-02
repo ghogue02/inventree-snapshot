@@ -68,13 +68,15 @@ const CameraScanTab = ({
             />
           </div>
           
-          <CameraCapture 
-            capturedImage={capturedImage}
-            onImageCaptured={onImageCaptured}
-            onResetCapture={onResetCapture}
-            isAnalyzing={isAnalyzing}
-            scanMode={scanMode}
-          />
+          <div className="camera-container" style={{ width: '100%' }}>
+            <CameraCapture 
+              capturedImage={capturedImage}
+              onImageCaptured={onImageCaptured}
+              onResetCapture={onResetCapture}
+              isAnalyzing={isAnalyzing}
+              scanMode={scanMode}
+            />
+          </div>
         </CardContent>
       </Card>
 

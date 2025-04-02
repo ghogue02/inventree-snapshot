@@ -62,7 +62,7 @@ const CameraView = ({
   
   return (
     <div 
-      className={`relative w-full h-full touch-none ${isMobile ? 'h-[65vh]' : ''}`}
+      className="relative w-full h-full touch-none"
       onClick={onContainerTap}
       role="button"
       aria-label="Tap to capture"
@@ -72,7 +72,9 @@ const CameraView = ({
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/10">
           <div className="bg-white/90 px-4 py-2 rounded-full flex items-center animate-pulse-light">
             <Loader2 className="animate-spin mr-2 h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">Accessing camera...</span>
+            <span className="text-sm font-medium">
+              {isLoading ? "Accessing camera..." : "Processing..."}
+            </span>
           </div>
         </div>
       )}
@@ -82,7 +84,12 @@ const CameraView = ({
         autoPlay 
         playsInline
         muted
-        className={`w-full h-full object-cover rounded-md transition-opacity duration-300 ${isCapturing ? 'opacity-100' : 'opacity-0'}`}
+        className="w-full h-full object-cover"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
       />
       
       {isCapturing && <ScanFrame scanMode={scanMode} />}
