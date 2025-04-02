@@ -27,11 +27,18 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     
+    // Try to get OpenAI API key from environment variables first (GitHub Secrets)
+    // then fallback to Supabase Edge Function Secrets
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not configured');
+    }
+    
     // Process with OpenAI Vision API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
