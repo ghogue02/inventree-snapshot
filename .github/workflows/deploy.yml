@@ -45,7 +45,7 @@ jobs:
           ls -la dist/
         env:
           NODE_ENV: production
-          NODE_OPTIONS: "--trace-warnings --verbose"
+          NODE_OPTIONS: "--trace-warnings"
           DEBUG: "vite:*"
 
       - name: Upload artifact
