@@ -1,7 +1,17 @@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+// Debug log the environment variable (remove in production)
+console.log('API Key available:', !!import.meta.env.VITE_OPENAI_API_KEY);
+
+const getOpenAIKey = () => {
+  const key = import.meta.env.VITE_OPENAI_API_KEY;
+  if (!key) {
+    console.error('OpenAI API key is not found in environment variables');
+    return null;
+  }
+  return key.trim(); // Remove any whitespace
+};
 
 const getCategorySpecificPrompt = (productName: string, category: string): string => {
   const basePrompt = "A professional, clean product photo";
@@ -24,9 +34,10 @@ const getCategorySpecificPrompt = (productName: string, category: string): strin
 
 export const generateProductImage = async (productName: string, category: string): Promise<string | null> => {
   try {
-    if (!OPENAI_API_KEY) {
-      toast.error("OpenAI API key is not configured");
-      throw new Error('OpenAI API key is not configured');
+    const apiKey = getOpenAIKey();
+    if (!apiKey) {
+      toast.error("OpenAI API key is not configured. Please check your environment variables.");
+      return null;
     }
 
     const prompt = getCategorySpecificPrompt(productName, category);
@@ -36,7 +47,7 @@ export const generateProductImage = async (productName: string, category: string
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
+        "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
         model: "dall-e-3",
@@ -51,7 +62,7 @@ export const generateProductImage = async (productName: string, category: string
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error('OpenAI API Error:', errorData);
-      throw new Error(`Failed to generate image: ${response.statusText}`);
+      throw new Error(`Failed to generate image: ${response.statusText} (${response.status})`);
     }
 
     const data = await response.json();
@@ -59,6 +70,10 @@ export const generateProductImage = async (productName: string, category: string
 
     // Fetch the image from OpenAI
     const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch generated image: ${imageResponse.statusText}`);
+    }
+
     const imageBlob = await imageResponse.blob();
 
     // Convert blob to base64
@@ -86,20 +101,29 @@ export const generateProductImage = async (productName: string, category: string
     });
 
     if (!uploadResponse.ok) {
-      throw new Error('Failed to upload image');
+      const uploadErrorData = await uploadResponse.json().catch(() => ({}));
+      console.error('Upload Error:', uploadErrorData);
+      throw new Error('Failed to upload image to storage');
     }
 
     const { url } = await uploadResponse.json();
     return url;
   } catch (error) {
     console.error('Error in generateProductImage:', error);
-    toast.error(`Failed to generate image for ${productName}`);
+    toast.error(`Failed to generate image for ${productName}: ${error.message}`);
     return null;
   }
 };
 
 export const generateAllProductImages = async (products: { name: string; category: string; }[]): Promise<void> => {
   try {
+    // Check API key before starting
+    const apiKey = getOpenAIKey();
+    if (!apiKey) {
+      toast.error("OpenAI API key is not configured. Please check your environment variables.");
+      return;
+    }
+
     toast.loading("Generating product images...");
     let successCount = 0;
     let failureCount = 0;
@@ -108,11 +132,17 @@ export const generateAllProductImages = async (products: { name: string; categor
       try {
         const imageUrl = await generateProductImage(product.name, product.category);
         if (imageUrl) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('products')
             .update({ image: imageUrl })
             .eq('name', product.name);
-          successCount++;
+
+          if (updateError) {
+            console.error(`Failed to update product ${product.name} with image:`, updateError);
+            failureCount++;
+          } else {
+            successCount++;
+          }
         } else {
           failureCount++;
         }
@@ -129,6 +159,6 @@ export const generateAllProductImages = async (products: { name: string; categor
     }
   } catch (error) {
     console.error('Error generating all product images:', error);
-    toast.error("Failed to generate product images");
+    toast.error(`Failed to generate product images: ${error.message}`);
   }
 }; 
