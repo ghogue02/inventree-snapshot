@@ -57,9 +57,7 @@ export const generateProductImage = async (productName: string, category: string
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`Failed to generate image: ${response.statusText} (${response.status})`);
+      throw new Error(`Failed to generate image: ${response.status}`);
     }
 
     const data = await response.json();
@@ -68,7 +66,7 @@ export const generateProductImage = async (productName: string, category: string
     // Fetch the image from OpenAI
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch generated image: ${imageResponse.statusText}`);
+      throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
     }
 
     const imageBlob = await imageResponse.blob();
