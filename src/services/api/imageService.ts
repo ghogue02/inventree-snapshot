@@ -20,11 +20,47 @@ const getCategorySpecificPrompt = (productName: string, category: string): strin
   }
 };
 
+const uploadImageToStorage = async (base64Data: string, fileName: string): Promise<string> => {
+  try {
+    // Convert base64 to blob
+    const base64WithoutHeader = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const byteString = atob(base64WithoutHeader);
+    const arrayBuffer = new ArrayBuffer(byteString.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    for (let i = 0; i < byteString.length; i++) {
+      uint8Array[i] = byteString.charCodeAt(i);
+    }
+    
+    const blob = new Blob([uint8Array], { type: 'image/png' });
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(`${fileName}.png`, blob, {
+        contentType: 'image/png',
+        upsert: true
+      });
+      
+    if (error) throw error;
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(`${fileName}.png`);
+      
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+};
+
 export const generateProductImage = async (productName: string, category: string): Promise<string | null> => {
   try {
     const prompt = getCategorySpecificPrompt(productName, category);
     
-    // Call Supabase Edge Function instead of OpenAI directly
+    // Call Supabase Edge Function to generate image
     const { data, error } = await supabase.functions.invoke('generate-image', {
       body: { prompt, productName, category }
     });
@@ -37,10 +73,13 @@ export const generateProductImage = async (productName: string, category: string
       throw new Error('No image URL returned');
     }
 
-    // Return the base64 image data directly from the edge function
-    return data.imageUrl;
-
+    // Upload the base64 image to Supabase storage
+    const fileName = `${category.toLowerCase()}-${productName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const publicUrl = await uploadImageToStorage(data.imageUrl, fileName);
+    
+    return publicUrl;
   } catch (error) {
+    console.error('Error generating image:', error);
     toast.error("Failed to generate image");
     return null;
   }
@@ -69,6 +108,7 @@ export const generateAllProductImages = async (products: { id: string; name: str
             .eq('id', product.id);
 
           if (updateError) {
+            console.error('Error updating product with image:', updateError);
             failureCount++;
           } else {
             successCount++;
@@ -77,16 +117,19 @@ export const generateAllProductImages = async (products: { id: string; name: str
           failureCount++;
         }
       } catch (error) {
+        console.error('Error processing product:', error);
         failureCount++;
       }
     }
 
+    toast.dismiss();
     if (failureCount === 0) {
       toast.success(`Successfully generated ${successCount} product images`);
     } else {
       toast.warning(`Generated ${successCount} images, failed to generate ${failureCount} images`);
     }
   } catch (error) {
+    console.error('Error generating all images:', error);
     toast.error("Failed to generate product images");
   }
 }; 

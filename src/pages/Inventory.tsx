@@ -192,6 +192,13 @@ const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
   // Determine if product is low on stock
   const isLowStock = product.currentStock <= product.reorderPoint;
 
+  // Calculate value, handling undefined/null values
+  const calculateValue = () => {
+    const stock = product.currentStock || 0;
+    const cost = product.cost || 0;
+    return (stock * cost).toFixed(2);
+  };
+
   const handleChange = (field: keyof Product, value: any) => {
     setProduct(prev => ({
       ...prev,
@@ -375,7 +382,7 @@ const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
         <div>
           <p className="text-xs text-muted-foreground">Current Stock</p>
           <p className="font-medium">
-            {product.currentStock} {product.unit}
+            {product.currentStock || 0}
             {isLowStock && (
               <Badge variant="outline" className="ml-2 bg-orange-50 text-orange-500 border-orange-200">
                 Low
@@ -386,7 +393,7 @@ const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
         <div>
           <p className="text-xs text-muted-foreground">Value</p>
           <p className="font-medium">
-            ${(product.currentStock * product.cost).toFixed(2)}
+            ${calculateValue()}
           </p>
         </div>
       </div>
@@ -403,7 +410,7 @@ const ProductCard = ({ product: initialProduct }: ProductCardProps) => {
         </div>
         <div className="flex justify-between mt-1">
           <span className="text-muted-foreground">Reorder at: {product.reorderPoint}</span>
-          <span className="font-medium">${product.cost}/{product.unit}</span>
+          <span className="font-medium">${product.cost?.toFixed(2) || '0.00'}/{product.unit}</span>
         </div>
       </div>
     </div>

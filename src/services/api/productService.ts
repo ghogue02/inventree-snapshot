@@ -3,6 +3,29 @@ import { Product } from "@/types/inventory";
 import { supabase } from "@/integrations/supabase/client";
 import { mockProducts } from "@/data/mockProducts";
 
+// Helper function to map database fields to frontend model
+const mapDatabaseToProduct = (item: any): Product => ({
+  id: item.id,
+  name: item.name,
+  category: item.category,
+  unit: item.unit,
+  currentStock: item.current_stock || 0,
+  reorderPoint: item.reorder_point || 0,
+  cost: item.cost || 0,
+  image: item.image || null
+});
+
+// Helper function to map frontend model to database fields
+const mapProductToDatabase = (product: Partial<Product>) => ({
+  name: product.name,
+  category: product.category,
+  unit: product.unit,
+  current_stock: product.currentStock || 0,
+  reorder_point: product.reorderPoint || 0,
+  cost: product.cost || 0,
+  image: product.image
+});
+
 export const getProducts = async (): Promise<Product[]> => {
   try {
     const { data, error } = await supabase
@@ -15,16 +38,7 @@ export const getProducts = async (): Promise<Product[]> => {
       throw error;
     }
     
-    return data.map(item => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      unit: item.unit,
-      currentStock: item.current_stock,
-      reorderPoint: item.reorder_point,
-      cost: item.cost,
-      image: item.image
-    })) as Product[];
+    return data.map(mapDatabaseToProduct);
   } catch (error) {
     console.error('Error in getProducts:', error);
     throw error;
@@ -35,15 +49,7 @@ export const addProduct = async (product: Omit<Product, "id">): Promise<Product>
   try {
     const { data, error } = await supabase
       .from('products')
-      .insert({
-        name: product.name,
-        category: product.category,
-        unit: product.unit,
-        current_stock: product.currentStock,
-        reorder_point: product.reorderPoint,
-        cost: product.cost,
-        image: product.image
-      })
+      .insert(mapProductToDatabase(product))
       .select()
       .single();
       
@@ -54,16 +60,7 @@ export const addProduct = async (product: Omit<Product, "id">): Promise<Product>
     }
     
     toast.success("Product added successfully");
-    return {
-      id: data.id,
-      name: data.name,
-      category: data.category,
-      unit: data.unit,
-      currentStock: data.current_stock,
-      reorderPoint: data.reorder_point,
-      cost: data.cost,
-      image: data.image
-    } as Product;
+    return mapDatabaseToProduct(data);
   } catch (error) {
     console.error('Error in addProduct:', error);
     throw error;
@@ -74,15 +71,7 @@ export const updateProduct = async (product: Product): Promise<Product> => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .update({
-        name: product.name,
-        category: product.category,
-        unit: product.unit,
-        current_stock: product.currentStock,
-        reorder_point: product.reorderPoint,
-        cost: product.cost,
-        image: product.image
-      })
+      .update(mapProductToDatabase(product))
       .eq('id', product.id)
       .select()
       .single();
@@ -94,16 +83,7 @@ export const updateProduct = async (product: Product): Promise<Product> => {
     }
     
     toast.success("Product updated successfully");
-    return {
-      id: data.id,
-      name: data.name,
-      category: data.category,
-      unit: data.unit,
-      currentStock: data.current_stock,
-      reorderPoint: data.reorder_point,
-      cost: data.cost,
-      image: data.image
-    } as Product;
+    return mapDatabaseToProduct(data);
   } catch (error) {
     console.error('Error in updateProduct:', error);
     throw error;
@@ -122,26 +102,34 @@ export const deleteProduct = async (id: string): Promise<void> => {
       toast.error("Failed to delete product");
       throw error;
     }
-    
-    toast.success("Product deleted successfully");
   } catch (error) {
     console.error('Error in deleteProduct:', error);
     throw error;
   }
 };
 
+export const loadMockProducts = async (): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .insert(mockProducts.map(mapProductToDatabase));
+      
+    if (error) {
+      console.error('Error loading mock products:', error);
+      toast.error("Failed to load mock products");
+      throw error;
+    }
+    
+    toast.success("Mock products loaded successfully");
+  } catch (error) {
+    console.error('Error in loadMockProducts:', error);
+    throw error;
+  }
+};
+
 export const updateProducts = async (products: Product[]): Promise<void> => {
   try {
-    const updates = products.map(product => ({
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      unit: product.unit,
-      current_stock: product.currentStock,
-      reorder_point: product.reorderPoint,
-      cost: product.cost,
-      image: product.image
-    }));
+    const updates = products.map(product => mapProductToDatabase(product));
 
     const { error } = await supabase
       .from('products')
@@ -156,93 +144,6 @@ export const updateProducts = async (products: Product[]): Promise<void> => {
     toast.success("Products updated successfully");
   } catch (error) {
     console.error('Error in updateProducts:', error);
-    throw error;
-  }
-};
-
-export const loadMockProducts = async () => {
-  try {
-    toast.loading("Checking inventory data...");
-
-    // First, check if we already have products
-    const { data: existingProducts, error: checkError } = await supabase
-      .from('products')
-      .select('id')
-      .limit(1);
-
-    if (checkError) {
-      console.error('Error checking existing products:', checkError);
-      toast.error("Failed to check existing data");
-      throw checkError;
-    }
-
-    // If we already have products, don't reload mock data
-    if (existingProducts && existingProducts.length > 0) {
-      toast.success("Inventory data already loaded");
-      return;
-    }
-
-    toast.loading("Loading sample data...");
-
-    // First, delete all invoice items to handle foreign key constraints
-    const { error: deleteInvoiceItemsError } = await supabase
-      .from('invoice_items')
-      .delete()
-      .not('id', 'is', null);
-
-    if (deleteInvoiceItemsError) {
-      console.error('Error deleting invoice items:', deleteInvoiceItemsError);
-      toast.error("Failed to clear existing data");
-      throw deleteInvoiceItemsError;
-    }
-
-    // Then delete all invoices
-    const { error: deleteInvoicesError } = await supabase
-      .from('invoices')
-      .delete()
-      .not('id', 'is', null);
-
-    if (deleteInvoicesError) {
-      console.error('Error deleting invoices:', deleteInvoicesError);
-      toast.error("Failed to clear existing data");
-      throw deleteInvoicesError;
-    }
-
-    // Finally, delete all products
-    const { error: deleteProductsError } = await supabase
-      .from('products')
-      .delete()
-      .not('id', 'is', null);
-
-    if (deleteProductsError) {
-      console.error('Error deleting products:', deleteProductsError);
-      toast.error("Failed to clear existing data");
-      throw deleteProductsError;
-    }
-
-    // Insert mock products
-    const { error: insertError } = await supabase
-      .from('products')
-      .insert(mockProducts.map(product => ({
-        name: product.name,
-        category: product.category,
-        unit: product.unit,
-        current_stock: product.current_stock,
-        reorder_point: product.reorder_point,
-        cost: product.cost,
-        image: null
-      })));
-
-    if (insertError) {
-      console.error('Error inserting mock products:', insertError);
-      toast.error("Failed to load sample data");
-      throw insertError;
-    }
-
-    toast.success("Sample data loaded successfully");
-  } catch (error) {
-    console.error('Error in loadMockProducts:', error);
-    toast.error("Failed to load sample data");
     throw error;
   }
 };
