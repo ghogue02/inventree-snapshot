@@ -64,7 +64,7 @@ export const useInventorySaving = () => {
         
         const result = await addInventoryCounts(validCounts.map(c => ({
           ...c,
-          countedAt: new Date(c.countedAt)
+          countedAt: new Date(c.countedAt),
         })));
         
         toast.dismiss();

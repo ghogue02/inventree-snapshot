@@ -1,7 +1,7 @@
 
 import { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createSyncStoragePersister } from '@tanstack/query-persist-client-core';
+import { createSyncStoragePersister } from '@tanstack/react-query-persist-client';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import localForage from 'localforage';
 
@@ -48,14 +48,6 @@ persistQueryClient({
   persister,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   buster: process.env.BUILD_ID || '1', // Cache version - change to invalidate cache
-  hydrateOptions: {
-    defaultOptions: {
-      queries: {
-        // Don't refetch on hydration to avoid unnecessary network requests
-        staleTime: 1000 * 60 * 2, // 2 minutes
-      },
-    },
-  },
 });
 
 interface QueryProviderProps {

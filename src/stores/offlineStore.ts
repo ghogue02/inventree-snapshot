@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { InventoryRecognitionResult } from '@/types/inventory';
@@ -15,7 +16,7 @@ type OfflineInventoryCount = {
   productId: string;
   count: number;
   countedAt: string;
-  countMethod: 'camera' | 'video' | 'manual';
+  countMethod: 'camera' | 'video' | 'manual' | 'invoice';
   notes?: string;
   synced: boolean;
 };
