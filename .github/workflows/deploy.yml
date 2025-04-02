@@ -40,17 +40,13 @@ jobs:
       - name: Build project
         run: |
           echo "Starting build..."
-          NODE_ENV=production npm run build || {
-            echo "Build failed. Checking for error logs..."
-            find . -name "*.log" -type f -exec cat {} \;
-            exit 1
-          }
+          npm run build
           echo "Build complete. Checking dist directory:"
           ls -la dist/
         env:
           NODE_ENV: production
           NODE_OPTIONS: "--trace-warnings --verbose"
-          DEBUG: "*"
+          DEBUG: "vite:*"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
