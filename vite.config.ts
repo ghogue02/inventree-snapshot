@@ -39,7 +39,7 @@ export default defineConfig({
     host: "::",
     port: 8080,
     headers: {
-      'Content-Type': 'text/javascript',
+      'Content-Type': 'application/javascript',
       'X-Content-Type-Options': 'nosniff',
     },
   },
