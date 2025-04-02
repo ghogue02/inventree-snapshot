@@ -11,6 +11,7 @@ export function useCamera() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isFlashing, setIsFlashing] = useState(false); // State for capture visual feedback
   const { flashActive, toggleFlash, initializeFlash } = useFlash();
+  const [streamInitialized, setStreamInitialized] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -48,6 +49,10 @@ export function useCamera() {
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             console.log("Video metadata loaded, starting playback");
+            
+            // Set stream initialized flag
+            setStreamInitialized(true);
+            
             videoRef.current.play()
               .then(() => {
                 setIsCapturing(true);
@@ -67,6 +72,13 @@ export function useCamera() {
                 setIsLoading(false);
               });
           }
+        };
+        
+        // Add error handler for video element
+        videoRef.current.onerror = () => {
+          console.error("Video element error");
+          setCameraError("Camera error: Failed to initialize video element");
+          setIsLoading(false);
         };
       }
     } catch (error: any) {
@@ -97,6 +109,7 @@ export function useCamera() {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
       setIsCapturing(false);
+      setStreamInitialized(false);
       
       // Make sure to clear the video source when stopping
       if (videoRef.current) {
@@ -124,6 +137,7 @@ export function useCamera() {
     cameraError,
     flashActive,
     isFlashing,
+    streamInitialized,
     startCamera,
     stopCamera,
     triggerCaptureEffect,

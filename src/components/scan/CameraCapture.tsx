@@ -36,7 +36,8 @@ const CameraCapture = ({
     stopCamera, 
     toggleFlash,
     triggerCaptureEffect,
-    isFlashing
+    isFlashing,
+    streamInitialized
   } = useCamera();
   const isMobile = useIsMobile();
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -83,15 +84,15 @@ const CameraCapture = ({
       // Draw the video frame to the canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      const rawImageData = canvas.toDataURL("image/jpeg", 0.9); // Using higher quality for initial capture
+      const rawImageData = canvas.toDataURL("image/jpeg", 0.95); // Using higher quality for initial capture
       console.log(`Raw image captured with size: ${Math.round(rawImageData.length / 1024)}KB`);
       
       // Optimize the image before passing it up
       setIsOptimizing(true);
       
       // Use appropriate compression for mode, but higher quality than before
-      const quality = scanMode === 'shelf' ? 0.85 : 0.92;
-      const maxWidth = scanMode === 'shelf' ? 1600 : 1280;
+      const quality = scanMode === 'shelf' ? 0.9 : 0.95;
+      const maxWidth = scanMode === 'shelf' ? 1800 : 1600;
       
       console.log(`Optimizing image with quality ${quality} and max width ${maxWidth}`);
       const optimizedImage = await optimizeImage(rawImageData, maxWidth, maxWidth, quality);
@@ -117,7 +118,7 @@ const CameraCapture = ({
     <div className="space-y-4">
       <div 
         ref={videoContainerRef}
-        className={`video-container bg-gray-100 rounded-md overflow-hidden relative ${
+        className={`video-container bg-gray-800 rounded-md overflow-hidden relative ${
           isCapturing && isMobile ? 'fullscreen min-h-[75vh]' : 'min-h-[350px]'
         } ${isFlashing ? 'bg-white' : ''}`}
         style={{ 

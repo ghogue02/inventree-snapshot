@@ -18,6 +18,11 @@ export const optimizeImage = async (
       let width = img.width;
       let height = img.height;
       
+      // Check for extremely small dimensions
+      if (width < 200 || height < 200) {
+        console.warn(`Image is unusually small: ${width}x${height}. This may indicate a camera issue.`);
+      }
+      
       // Don't upscale images that are already smaller
       if (width > maxWidth) {
         height = Math.floor((height * maxWidth) / width);
@@ -27,6 +32,18 @@ export const optimizeImage = async (
       if (height > maxHeight) {
         width = Math.floor((width * maxHeight) / height);
         height = maxHeight;
+      }
+      
+      // Enforce minimum dimensions to prevent too-small images
+      const minDimension = 800;
+      if (width < minDimension && img.width >= minDimension) {
+        width = minDimension;
+        height = Math.floor((img.height * minDimension) / img.width);
+      }
+      
+      if (height < minDimension && img.height >= minDimension) {
+        height = minDimension;
+        width = Math.floor((img.width * minDimension) / img.height);
       }
       
       console.log(`Resized dimensions: ${width}x${height}`);
@@ -52,11 +69,16 @@ export const optimizeImage = async (
       // Get optimized data URL
       const optimizedDataUrl = canvas.toDataURL('image/jpeg', quality);
       
+      // Log size info for debugging
+      const originalSize = Math.round(imageDataUrl.length / 1024);
+      const optimizedSize = Math.round(optimizedDataUrl.length / 1024);
+      console.log(`Image optimization: ${originalSize}KB → ${optimizedSize}KB (${Math.round(optimizedSize/originalSize*100)}%)`);
+      
       // Check if optimization actually reduced the size
       if (optimizedDataUrl.length < imageDataUrl.length || width !== img.width || height !== img.height) {
         resolve(optimizedDataUrl);
       } else {
-        // If optimization didn't help, return original
+        console.log("Optimization did not reduce size, returning original");
         resolve(imageDataUrl);
       }
     };

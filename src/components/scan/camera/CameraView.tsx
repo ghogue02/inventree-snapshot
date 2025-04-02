@@ -59,7 +59,7 @@ const CameraView = ({
       </div>
     );
   }
-  
+
   return (
     <div 
       className="relative w-full h-full touch-none"
@@ -68,13 +68,12 @@ const CameraView = ({
       aria-label="Tap to capture"
       tabIndex={0}
     >
+      {/* Loading overlay with improved styling */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/10">
-          <div className="bg-white/90 px-4 py-2 rounded-full flex items-center animate-pulse-light">
-            <Loader2 className="animate-spin mr-2 h-5 w-5 text-primary" />
-            <span className="text-sm font-medium">
-              {isLoading ? "Accessing camera..." : "Processing..."}
-            </span>
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/30 backdrop-blur-sm">
+          <div className="bg-white/95 px-6 py-3 rounded-lg shadow-md flex items-center gap-2">
+            <Loader2 className="animate-spin h-5 w-5 text-primary" />
+            <span className="font-medium">Accessing camera...</span>
           </div>
         </div>
       )}
@@ -84,7 +83,7 @@ const CameraView = ({
         autoPlay 
         playsInline
         muted
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover bg-black"
         style={{
           width: '100%',
           height: '100%',
