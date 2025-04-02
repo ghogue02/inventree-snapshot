@@ -4,6 +4,7 @@ import { InventoryRecognitionResult, Product } from "@/types/inventory";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ItemCard from "./ItemCard";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ItemSuggestionListProps {
   items: InventoryRecognitionResult[];
@@ -57,6 +58,8 @@ const ItemSuggestionList = ({
     }
   };
 
+  const maxListHeight = isMobile ? "50vh" : "60vh";
+
   return (
     <div className="space-y-2">
       <h3 className="text-lg font-medium">Suggested Items</h3>
@@ -64,31 +67,33 @@ const ItemSuggestionList = ({
         {isMobile ? "Tap an item to update its quantity" : "Select an item to update its quantity"}
       </p>
       
-      <div className="grid gap-2">
-        {items.map((item, index) => (
-          <ItemCard
-            key={index}
-            item={item}
-            index={index}
-            isSelected={selectedItemIndex === index}
-            isEditing={editingItemIndex === index}
-            isAdding={addingItemIndex === index}
-            onSelect={handleSelectItem}
-            onUpdateItem={onUpdateItem}
-            onRemoveItem={onRemoveItem}
-            onAddToInventory={handleAddToInventory}
-            onStartEdit={(index) => setEditingItemIndex(index)}
-            onCancelEdit={() => setEditingItemIndex(null)}
-            onSaveEdit={handleSaveEdit}
-          />
-        ))}
-        
-        {items.length === 0 && (
-          <div className="text-center p-6 border rounded-md bg-gray-50">
-            <p className="text-muted-foreground">No items detected. Try scanning again.</p>
-          </div>
-        )}
-      </div>
+      <ScrollArea className={`${items.length > 3 ? `max-h-[${maxListHeight}]` : ''}`}>
+        <div className="grid gap-2 pr-2">
+          {items.map((item, index) => (
+            <ItemCard
+              key={index}
+              item={item}
+              index={index}
+              isSelected={selectedItemIndex === index}
+              isEditing={editingItemIndex === index}
+              isAdding={addingItemIndex === index}
+              onSelect={handleSelectItem}
+              onUpdateItem={onUpdateItem}
+              onRemoveItem={onRemoveItem}
+              onAddToInventory={handleAddToInventory}
+              onStartEdit={(index) => setEditingItemIndex(index)}
+              onCancelEdit={() => setEditingItemIndex(null)}
+              onSaveEdit={handleSaveEdit}
+            />
+          ))}
+          
+          {items.length === 0 && (
+            <div className="text-center p-6 border rounded-md bg-gray-50">
+              <p className="text-muted-foreground">No items detected. Try scanning again.</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
