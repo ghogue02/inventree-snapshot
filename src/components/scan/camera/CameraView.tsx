@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Loader2, Camera, Scan, AlertTriangle, Wifi, WifiOff } from "lucide-react";
 import ScanFrame from "./ScanFrame";
@@ -83,11 +82,10 @@ const CameraView = ({
         autoPlay 
         playsInline
         muted
-        className="w-full h-full object-cover bg-black"
+        className="w-full h-full object-contain bg-black"
         style={{
           width: '100%',
-          height: '100%',
-          objectFit: 'cover'
+          height: '100%'
         }}
       />
       
