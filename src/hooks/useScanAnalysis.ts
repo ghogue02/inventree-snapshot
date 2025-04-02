@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI, analyzeShelfImage, addInventoryCounts, addProduct, processInventoryVideo } from "@/services/apiService";
+import { analyzeImageWithOpenAI, addInventoryCounts, addProduct, processInventoryVideo } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
 
 export const useScanAnalysis = (products: Product[]) => {
@@ -13,7 +13,6 @@ export const useScanAnalysis = (products: Product[]) => {
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [scanMode, setScanMode] = useState<'single' | 'shelf'>('single');
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
   const analyzeImage = async (imageData?: string) => {
@@ -26,37 +25,16 @@ export const useScanAnalysis = (products: Product[]) => {
     try {
       toast.loading("Analyzing image...");
       
-      if (scanMode === 'shelf') {
-        // Process as batch shelf analysis
-        const result = await analyzeShelfImage(imageToAnalyze);
-        
-        if (result && result.items) {
-          // Match products against inventory
-          const enhancedItems = result.items.map(item => {
-            const matchedProduct = checkIfItemExists(item.name);
-            return {
-              ...item,
-              productId: matchedProduct?.id || "",
-              confidence: item.confidence || 0.9,
-              count: item.count || 1
-            };
-          });
-          
-          setRecognizedItems(enhancedItems);
-          setAnalysisResult("Shelf analysis complete. Here are the detected items:");
-        }
-      } else {
-        // Process as single item analysis
-        const result = await analyzeImageWithOpenAI(
-          imageToAnalyze,
-          "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
-        );
-        
-        setAnalysisResult(result);
-        
-        const recognizedItems = extractItemsFromAnalysis(result, products);
-        setRecognizedItems(recognizedItems);
-      }
+      // Process as single item analysis
+      const result = await analyzeImageWithOpenAI(
+        imageToAnalyze,
+        "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
+      );
+      
+      setAnalysisResult(result);
+      
+      const recognizedItems = extractItemsFromAnalysis(result, products);
+      setRecognizedItems(recognizedItems);
       
       toast.dismiss();
       toast.success("Analysis complete");
@@ -288,8 +266,6 @@ export const useScanAnalysis = (products: Product[]) => {
     analysisResult,
     recognizedItems,
     isUploading,
-    scanMode,
-    setScanMode,
     selectedItemIndex,
     selectItem,
     resetCapture,

@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Camera, Loader2, RefreshCw, AlertTriangle, Scan } from "lucide-react";
+import { Camera, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,15 +10,13 @@ interface CameraCaptureProps {
   onImageCaptured: (imageData: string) => void;
   onResetCapture: () => void;
   isAnalyzing: boolean;
-  scanMode: 'single' | 'shelf';
 }
 
 const CameraCapture = ({ 
   capturedImage, 
   onImageCaptured,
   onResetCapture,
-  isAnalyzing,
-  scanMode
+  isAnalyzing
 }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -129,15 +127,9 @@ const CameraCapture = ({
             {!isCapturing && !cameraError && (
               <div className="text-center p-4">
                 <p className="text-muted-foreground mb-2">
-                  {scanMode === 'single' 
-                    ? 'Capture a single inventory item' 
-                    : 'Scan multiple items on a shelf'}
+                  Capture an inventory item
                 </p>
-                {scanMode === 'single' ? (
-                  <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
-                ) : (
-                  <Scan className="mx-auto h-12 w-12 text-muted-foreground" />
-                )}
+                <Camera className="mx-auto h-12 w-12 text-muted-foreground" />
               </div>
             )}
           </>
@@ -182,17 +174,8 @@ const CameraCapture = ({
 
         {isCapturing && !capturedImage && (
           <Button onClick={captureImage}>
-            {scanMode === 'shelf' ? (
-              <>
-                <Scan className="mr-2 h-4 w-4" />
-                Scan Shelf
-              </>
-            ) : (
-              <>
-                <Camera className="mr-2 h-4 w-4" />
-                Capture Item
-              </>
-            )}
+            <Camera className="mr-2 h-4 w-4" />
+            Capture Item
           </Button>
         )}
 
