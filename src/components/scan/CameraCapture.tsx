@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -121,14 +120,16 @@ const CameraCapture = ({
     <div className="space-y-4 relative">
       <div 
         ref={videoContainerRef}
-        className={`video-container bg-black rounded-md overflow-hidden relative ${
-          isFlashing ? 'bg-white' : ''
+        className={`video-container rounded-md overflow-hidden relative ${
+          isFlashing ? 'bg-white' : 'bg-black'
         }`}
         style={{ 
           width: '100%', 
           aspectRatio: isMobile ? '3/4' : '4/3',
           minHeight: '350px',
-          maxHeight: isMobile ? 'calc(100vh - 240px)' : '600px' // Adjusted to ensure controls visibility
+          maxHeight: isMobile ? 'calc(100vh - 240px)' : '600px', // Adjusted to ensure controls visibility
+          position: 'relative', // Ensure position is set for z-index
+          zIndex: 10 // Add z-index
         }}
       >
         {!capturedImage ? (

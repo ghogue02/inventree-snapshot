@@ -67,32 +67,23 @@ const CameraView = ({
       aria-label="Tap to capture"
       tabIndex={0}
     >
-      {/* Loading overlay with improved styling */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/70 backdrop-blur-sm">
-          <div className="bg-white/95 px-6 py-3 rounded-lg shadow-md flex items-center gap-2">
-            <Loader2 className="animate-spin h-5 w-5 text-primary" />
-            <span className="font-medium">Accessing camera...</span>
-          </div>
-        </div>
-      )}
-      
       <video 
         ref={videoRef} 
         autoPlay 
         playsInline
         muted
-        className="w-full h-full object-contain bg-black"
+        className="w-full h-full object-contain"
         style={{
           width: '100%',
           height: '100%'
         }}
       />
       
-      {isCapturing && <ScanFrame scanMode={scanMode} />}
+      {/* Temporarily comment out overlays for debugging */}
+      {/* {isCapturing && <ScanFrame scanMode={scanMode} />} */}
       
       {/* Connection status indicator */}
-      {isCapturing && (
+      {/* {isCapturing && (
         <div className="absolute top-4 right-4 z-10">
           <div className={`px-2 py-1 rounded-full flex items-center gap-1 text-xs font-medium ${
             connectionStatus === 'offline' ? 'bg-amber-100 text-amber-800' : 
@@ -117,13 +108,13 @@ const CameraView = ({
             )}
           </div>
         </div>
-      )}
+      )} */}
 
-      {isCapturing && (
+      {/* {isCapturing && (
         <div className="absolute bottom-4 left-4">
           <FlashButton onClick={toggleFlash} />
         </div>
-      )}
+      )} */}
     </div>
   );
 };
