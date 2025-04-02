@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -17,7 +16,7 @@ export interface InventoryCount {
   product?: Product;
   count: number;
   countedAt: Date;
-  countMethod: 'manual' | 'video' | 'invoice' | 'camera';
+  countMethod: 'manual' | 'video' | 'invoice';
   notes?: string;
 }
 

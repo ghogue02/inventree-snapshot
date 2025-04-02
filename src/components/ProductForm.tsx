@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,11 +10,9 @@ import { addProduct } from '@/services/apiService';
 import { toast } from 'sonner';
 import { useNavigate } from "react-router-dom";
 
-export interface ProductFormProps {
+interface ProductFormProps {
   initialValues?: Partial<Product>;
   rawAnalysis?: string;
-  onSuccess?: (product: Product) => void;
-  dialogMode?: boolean;
 }
 
 const PRODUCT_CATEGORIES = [
@@ -25,7 +24,7 @@ const PRODUCT_UNITS = [
   'oz', 'lb', 'g', 'kg', 'ml', 'l', 'each', 'box', 'bag', 'bottle', 'can', 'jar', 'package'
 ];
 
-export const ProductForm = ({ initialValues, rawAnalysis, onSuccess, dialogMode = false }: ProductFormProps) => {
+const ProductForm = ({ initialValues, rawAnalysis }: ProductFormProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [product, setProduct] = useState<Partial<Product>>({
@@ -53,7 +52,6 @@ export const ProductForm = ({ initialValues, rawAnalysis, onSuccess, dialogMode 
     try {
       if (!product.name || !product.category || !product.unit) {
         toast.error("Please fill in all required fields");
-        setIsLoading(false);
         return;
       }
 
@@ -69,12 +67,7 @@ export const ProductForm = ({ initialValues, rawAnalysis, onSuccess, dialogMode 
       });
 
       toast.success("Product added successfully!");
-      
-      if (onSuccess) {
-        onSuccess(newProduct);
-      } else if (!dialogMode) {
-        navigate("/inventory");
-      }
+      navigate("/inventory");
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error("Failed to add product");
@@ -191,15 +184,13 @@ export const ProductForm = ({ initialValues, rawAnalysis, onSuccess, dialogMode 
         )}
         
         <div className="flex justify-end space-x-2">
-          {!dialogMode && (
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={() => navigate("/inventory")}
-            >
-              Cancel
-            </Button>
-          )}
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => navigate("/inventory")}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Saving..." : "Add Product"}
           </Button>

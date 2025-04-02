@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI, addInventoryCounts, addProduct, processInventoryVideo } from "@/services/apiService";
+import { analyzeImageWithOpenAI, processInventoryVideo, addInventoryCounts, addProduct } from "@/services/apiService";
 import { useNavigate } from "react-router-dom";
 
 export const useScanAnalysis = (products: Product[]) => {
@@ -13,7 +13,6 @@ export const useScanAnalysis = (products: Product[]) => {
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
   const analyzeImage = async (imageData?: string) => {
     const imageToAnalyze = imageData || capturedImage;
@@ -23,21 +22,21 @@ export const useScanAnalysis = (products: Product[]) => {
     setIsAnalyzing(true);
     
     try {
+      const base64Data = imageToAnalyze.split(",")[1];
+      
       toast.loading("Analyzing image...");
       
-      // Process as single item analysis
       const result = await analyzeImageWithOpenAI(
         imageToAnalyze,
         "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
       );
       
       setAnalysisResult(result);
+      toast.dismiss();
+      toast.success("Analysis complete");
       
       const recognizedItems = extractItemsFromAnalysis(result, products);
       setRecognizedItems(recognizedItems);
-      
-      toast.dismiss();
-      toast.success("Analysis complete");
       
     } catch (error) {
       console.error("Error analyzing image:", error);
@@ -196,7 +195,6 @@ export const useScanAnalysis = (products: Product[]) => {
     setCapturedImage(null);
     setAnalysisResult(null);
     setRecognizedItems([]);
-    setSelectedItemIndex(null);
   };
 
   const goToAddProduct = () => {
@@ -255,10 +253,6 @@ export const useScanAnalysis = (products: Product[]) => {
     }
   };
 
-  const selectItem = (index: number) => {
-    setSelectedItemIndex(index);
-  };
-
   return {
     capturedImage,
     setCapturedImage,
@@ -266,8 +260,6 @@ export const useScanAnalysis = (products: Product[]) => {
     analysisResult,
     recognizedItems,
     isUploading,
-    selectedItemIndex,
-    selectItem,
     resetCapture,
     analyzeImage,
     processVideo,
@@ -280,5 +272,3 @@ export const useScanAnalysis = (products: Product[]) => {
     addToInventory
   };
 };
-
-export default useScanAnalysis;
