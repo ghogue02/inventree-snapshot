@@ -54,7 +54,7 @@ jobs:
           echo "=== Environment Variables ==="
           env | grep -v -i "key" | grep -v -i "token" | grep -v -i "secret"
           echo "=== Test Vite Config ==="
-          ts-node -e "import('./vite.config.ts').then(m => console.log(m.default))"
+          node -e "import('vite').then(vite => vite.loadConfigFromFile({command: 'build', mode: 'production'}, './vite.config.ts').then(config => console.log(config)))"
 
       - name: Build project with debug
         run: |
