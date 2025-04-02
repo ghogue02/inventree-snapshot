@@ -6,7 +6,7 @@ import { InventoryRecognitionResult } from "@/types/inventory";
 import ItemQuantityControl from "./ItemQuantityControl";
 import ItemEditForm from "./ItemEditForm";
 import ItemActionButtons from "./ItemActionButtons";
-import { CircleQuestion } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ItemCardProps {
@@ -109,7 +109,7 @@ const ItemCard = ({
               )}
               {item.confidence < 0.7 && (
                 <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 flex items-center gap-1">
-                  <CircleQuestion className="h-3 w-3" />
+                  <HelpCircle className="h-3 w-3" />
                   Low confidence
                 </Badge>
               )}
