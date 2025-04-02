@@ -51,65 +51,63 @@ export const useScanAnalysis = (products: Product[]) => {
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
     
-    // Extract product information from analysis text
     let currentProductName = "";
     let currentSize = "";
     let currentQuantity = 1;
     
     for (const line of lines) {
-      // Look for size/volume in the product name line first
-      const sizeInNameMatch = line.match(/.*?(?:\(|\s-\s|\s)([0-9.]+\s*(?:oz|g|ml|L|lb|kg))/i);
-      if (sizeInNameMatch) {
-        currentSize = sizeInNameMatch[1].trim();
+      // Extract size/volume information
+      const sizeMatch = line.match(/size\s*\/?\s*volume:?\s*(.+)/i) || 
+                       line.match(/([0-9.]+\s*(?:oz|g|ml|L|lb|kg)(?:\s*\(\s*[0-9.]+\s*[a-z]+\s*\))?)/i);
+      
+      if (sizeMatch) {
+        currentSize = sizeMatch[1].trim();
       }
       
-      const nameLine = line.match(/product name:?\s*(.+)/i);
+      // Extract product name
+      const nameLine = line.match(/product name:?\s*(.+)/i) ||
+                      line.match(/^[0-9]+\.\s*(.+)/);
       if (nameLine) {
         currentProductName = nameLine[1].trim();
+        
         // Check for size in the product name if not found earlier
         if (!currentSize) {
-          const sizeInName = currentProductName.match(/.*?(?:\(|\s-\s|\s)([0-9.]+\s*(?:oz|g|ml|L|lb|kg))/i);
+          const sizeInName = currentProductName.match(/([0-9.]+\s*(?:oz|g|ml|L|lb|kg)(?:\s*\(\s*[0-9.]+\s*[a-z]+\s*\))?)/i);
           if (sizeInName) {
             currentSize = sizeInName[1].trim();
           }
         }
       }
       
-      const sizeLine = line.match(/size\s*\/?\s*volume:?\s*(.+)/i);
-      if (sizeLine) {
-        currentSize = sizeLine[1].trim();
-      }
-      
+      // Extract quantity
       const quantityLine = line.match(/quantity:?\s*(\d+)/i);
       if (quantityLine) {
         currentQuantity = parseInt(quantityLine[1], 10);
       }
       
-      // If we have a product name, try to find it in existing products
+      // If we have a complete item, add it to the list
       if (currentProductName && 
-         (nameLine || sizeLine || quantityLine || line.trim().length === 0 || 
-          line.includes("No other") || line.includes("visible"))) {
+         (line.includes("Size/Volume:") || line.includes("Quantity:") || 
+          line.trim().length === 0 || line.includes("No other") || line.includes("visible"))) {
         
         const matchedProduct = checkIfItemExists(currentProductName);
         
-        if (currentProductName) {
-          items.push({
-            productId: matchedProduct?.id || "",
-            name: currentProductName,
-            count: currentQuantity || 1,
-            confidence: 0.9,
-            size: currentSize || 'N/A'
-          });
-          
-          // Reset for next product
-          currentProductName = "";
-          currentSize = "";
-          currentQuantity = 1;
-        }
+        items.push({
+          productId: matchedProduct?.id || "",
+          name: currentProductName,
+          count: currentQuantity || 1,
+          confidence: 0.9,
+          size: currentSize || ""
+        });
+        
+        // Reset for next item
+        currentProductName = "";
+        currentSize = "";
+        currentQuantity = 1;
       }
     }
     
-    // If we have a product at the end of processing, add it
+    // Add the last item if there is one
     if (currentProductName) {
       const matchedProduct = checkIfItemExists(currentProductName);
       
@@ -118,7 +116,7 @@ export const useScanAnalysis = (products: Product[]) => {
         name: currentProductName,
         count: currentQuantity,
         confidence: 0.9,
-        size: currentSize || 'N/A'
+        size: currentSize || ""
       });
     }
     
