@@ -24,9 +24,6 @@ serve(async (req) => {
       throw new Error('Configuration error');
     }
 
-    console.log('Processing product analysis request');
-
-    // Ensure the image is properly formatted for OpenAI
     const imageUrl = imageBase64.startsWith('data:') 
       ? imageBase64 
       : `data:image/jpeg;base64,${imageBase64}`;
@@ -63,20 +60,13 @@ serve(async (req) => {
     const data = await response.json();
     const analysisText = data.choices[0].message.content;
 
-    console.log('Successfully analyzed product with OpenAI');
-
-    // Try to parse JSON from the response
     let productData;
     try {
-      // Looking for JSON in the response text
       const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         productData = JSON.parse(jsonMatch[0]);
-        
-        // Always ensure currentStock is set to 1 (one item/package)
         productData.currentStock = 1;
         
-        // If unit doesn't include the size and size is available, append it
         if (productData.size && !productData.name.includes(productData.size)) {
           productData.name = `${productData.name} (${productData.size})`;
         }
@@ -84,10 +74,6 @@ serve(async (req) => {
         throw new Error("Invalid response format");
       }
     } catch (error) {
-      console.error('Error parsing product data:', error);
-      console.log('Raw analysis:', analysisText);
-      
-      // Create a sensible default from the text
       productData = {
         name: "Unknown Product",
         category: "Other",
@@ -95,17 +81,15 @@ serve(async (req) => {
         cost: 0,
         size: "",
         currentStock: 1,
-        reorderPoint: 5,
-        rawAnalysis: analysisText
+        reorderPoint: 5
       };
     }
 
     return new Response(
-      JSON.stringify({ product: productData, rawAnalysis: analysisText }),
+      JSON.stringify({ product: productData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in analyze-product function:', error);
     return new Response(
       JSON.stringify({ error: 'Analysis failed' }),
       { 

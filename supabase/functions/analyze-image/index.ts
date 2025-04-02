@@ -24,9 +24,6 @@ serve(async (req) => {
       throw new Error('Configuration error');
     }
 
-    console.log('Processing image analysis request');
-
-    // Ensure the image is properly formatted for OpenAI
     const imageUrl = imageBase64.startsWith('data:') 
       ? imageBase64 
       : `data:image/jpeg;base64,${imageBase64}`;
@@ -63,14 +60,11 @@ serve(async (req) => {
     const data = await response.json();
     const analysis = data.choices[0].message.content;
 
-    console.log('Successfully analyzed image with OpenAI');
-
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in analyze-image function:', error);
     return new Response(
       JSON.stringify({ error: 'Analysis failed' }),
       { 

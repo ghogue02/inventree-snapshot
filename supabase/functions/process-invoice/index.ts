@@ -20,9 +20,6 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    console.log(`Processing invoice: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
-
-    // Read the file as an array buffer
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     
@@ -57,9 +54,6 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('Successfully processed invoice image');
-    
-    // Parse the content from the assistant's message to get the structured invoice data
     const invoiceData = JSON.parse(result.choices[0].message.content);
     
     return new Response(
@@ -67,7 +61,6 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in process-invoice function:', error);
     return new Response(
       JSON.stringify({ error: 'Analysis failed' }),
       { 
