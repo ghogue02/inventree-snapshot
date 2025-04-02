@@ -4,41 +4,31 @@ import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/services/apiService";
-import useScanAnalysis from "@/hooks/useScanAnalysis";
-import CameraCapture from "@/components/scan/CameraCapture";
-import VideoUploader from "@/components/scan/VideoUploader";
-import AnalysisResults from "@/components/scan/AnalysisResults";
+import ProductFormDialog from "@/components/scan/ProductFormDialog";
+import { Product } from "@/types/inventory";
+import CameraScanTab from "@/components/scan/CameraScanTab";
+import VideoScanTab from "@/components/scan/VideoScanTab";
 
 const Scan = () => {
   const [tab, setTab] = useState("camera");
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [capturedImageForForm, setCapturedImageForForm] = useState<string | undefined>(undefined);
+  const [analysisForForm, setAnalysisForForm] = useState<string | undefined>(undefined);
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
     queryFn: getProducts
   });
 
-  const {
-    capturedImage,
-    setCapturedImage,
-    isAnalyzing,
-    analysisResult,
-    recognizedItems,
-    isUploading,
-    resetCapture,
-    analyzeImage,
-    processVideo,
-    saveInventoryCounts,
-    updateRecognizedItem,
-    removeRecognizedItem,
-    goToAddProduct,
-    handleFileSelected,
-    checkIfItemExists,
-    addToInventory
-  } = useScanAnalysis(products);
+  const handleOpenProductForm = (imageData?: string, analysisResult?: string) => {
+    setCapturedImageForForm(imageData);
+    setAnalysisForForm(analysisResult);
+    setProductFormOpen(true);
+  };
 
-  const handleImageCaptured = (imageDataUrl: string) => {
-    setCapturedImage(imageDataUrl);
-    analyzeImage(imageDataUrl);
+  const handleProductSuccess = (product: Product) => {
+    setProductFormOpen(false);
+    // Could refresh products here if needed
   };
 
   return (
@@ -54,53 +44,30 @@ const Scan = () => {
           </TabsList>
           
           <TabsContent value="camera" className="space-y-4">
-            <CameraCapture 
-              capturedImage={capturedImage}
-              onImageCaptured={handleImageCaptured}
-              onResetCapture={resetCapture}
-              isAnalyzing={isAnalyzing}
+            <CameraScanTab
+              products={products}
+              onOpenProductForm={handleOpenProductForm}
             />
-
-            {analysisResult && recognizedItems.length > 0 && (
-              <AnalysisResults 
-                analysisResult={analysisResult}
-                recognizedItems={recognizedItems}
-                products={products}
-                onSaveInventoryCounts={saveInventoryCounts}
-                onGoToAddProduct={goToAddProduct}
-                onResetCapture={resetCapture}
-                onUpdateItem={updateRecognizedItem}
-                onRemoveItem={removeRecognizedItem}
-                onAddToInventory={addToInventory}
-                checkIfItemExists={checkIfItemExists}
-              />
-            )}
           </TabsContent>
 
           <TabsContent value="upload">
-            <VideoUploader 
-              onVideoSelected={handleFileSelected}
-              isProcessing={isUploading} 
-              onProcessVideo={processVideo}
+            <VideoScanTab
+              products={products}
+              onOpenProductForm={handleOpenProductForm}
             />
-
-            {recognizedItems.length > 0 && (
-              <AnalysisResults
-                analysisResult={analysisResult || ""}
-                recognizedItems={recognizedItems}
-                products={products}
-                onSaveInventoryCounts={saveInventoryCounts}
-                onGoToAddProduct={goToAddProduct}
-                onResetCapture={resetCapture}
-                onUpdateItem={updateRecognizedItem}
-                onRemoveItem={removeRecognizedItem}
-                onAddToInventory={addToInventory}
-                checkIfItemExists={checkIfItemExists}
-              />
-            )}
           </TabsContent>
         </Tabs>
       </div>
+
+      <ProductFormDialog
+        open={productFormOpen}
+        onOpenChange={setProductFormOpen}
+        initialValues={{
+          image: capturedImageForForm,
+        }}
+        rawAnalysis={analysisForForm}
+        onSuccess={handleProductSuccess}
+      />
     </Layout>
   );
 };

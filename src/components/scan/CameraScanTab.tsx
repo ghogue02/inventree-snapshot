@@ -1,9 +1,9 @@
 
 import { useEffect } from "react";
-import useScanAnalysis from "@/hooks/useScanAnalysis";
 import CameraCapture from "./CameraCapture";
 import AnalysisResults from "./AnalysisResults";
 import { Product } from "@/types/inventory";
+import useScanFunctionality from "@/hooks/scan";
 
 interface CameraScanTabProps {
   products: Product[];
@@ -24,7 +24,7 @@ const CameraScanTab = ({ products, onOpenProductForm }: CameraScanTabProps) => {
     removeRecognizedItem,
     checkIfItemExists,
     addToInventory
-  } = useScanAnalysis(products);
+  } = useScanFunctionality(products);
 
   // Reset state on component mount
   useEffect(() => {

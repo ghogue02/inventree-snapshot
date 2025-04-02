@@ -11,7 +11,7 @@ import { useConnectivity } from "@/hooks/use-connectivity";
 export const useInventorySaving = () => {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
-  const { addOfflineItem } = useOfflineStore();
+  const offlineStore = useOfflineStore();
   const { isOnline } = useConnectivity();
 
   // Save inventory counts to database or offline storage
@@ -55,7 +55,7 @@ export const useInventorySaving = () => {
       } 
       // If offline, store for later synchronization
       else {
-        addOfflineItem({
+        offlineStore.addItem({
           id: `inv-${Date.now()}`,
           type: "inventory_count",
           createdAt: new Date(),

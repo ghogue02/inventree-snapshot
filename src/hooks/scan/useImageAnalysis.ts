@@ -2,22 +2,28 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { InventoryRecognitionResult, Product } from "@/types/inventory";
-import { analyzeImageWithOpenAI } from "@/services/apiService";
+import { analyzeImageWithOpenAI, processInventoryVideo } from "@/services/apiService";
 
 export const useImageAnalysis = () => {
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string>("");
   const [recognizedItems, setRecognizedItems] = useState<InventoryRecognitionResult[]>([]);
 
-  // Function to analyze a single item image
-  const analyzeSingleItemImage = async (imageData: string): Promise<void> => {
+  // Reset analysis state
+  const resetAnalysis = () => {
+    setAnalysisResult("");
+    setRecognizedItems([]);
+  };
+
+  // Process image with single item analysis
+  const analyzeSingleItemImage = async (imageData: string): Promise<boolean> => {
     setIsAnalyzing(true);
     
     try {
-      // Progress notification
       toast.loading("Analyzing image...");
       
-      // Analyze the image with AI
+      // Process as single item analysis
       const result = await analyzeImageWithOpenAI(
         imageData,
         "Please analyze this image and identify all food inventory items you see. For each item, include the specific product name, size/volume information, and quantity as individual units."
@@ -25,25 +31,24 @@ export const useImageAnalysis = () => {
       
       setAnalysisResult(result);
       
-      // Extract recognized items from analysis text
-      const items = extractItemsFromAnalysis(result);
-      setRecognizedItems(items);
+      const extractedItems = extractItemsFromAnalysis(result);
+      setRecognizedItems(extractedItems);
       
-      // Clear toast and show success
       toast.dismiss();
       toast.success("Analysis complete");
       
+      return true;
     } catch (error) {
       console.error("Error analyzing image:", error);
       toast.dismiss();
       toast.error("Failed to analyze image. Please try again or upload a clearer photo.");
-      setAnalysisResult(null);
+      return false;
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Parse AI analysis text to extract item information
+  // Extract items from analysis text
   const extractItemsFromAnalysis = (analysisText: string): InventoryRecognitionResult[] => {
     const items: InventoryRecognitionResult[] = [];
     const lines = analysisText.split("\n");
@@ -69,14 +74,14 @@ export const useImageAnalysis = () => {
         currentQuantity = parseInt(quantityLine[1], 10);
       }
       
-      // If we have a product name, and we're at a logical "break" in the data
+      // If we have a product name, try to find it in existing products
       if (currentProductName && 
          (nameLine || sizeLine || quantityLine || line.trim().length === 0 || 
           line.includes("No other") || line.includes("visible"))) {
         
         if (currentProductName) {
           items.push({
-            productId: "", // This will be matched later
+            productId: "",
             name: currentProductName,
             count: currentQuantity || 1,
             confidence: 0.9,
@@ -105,19 +110,42 @@ export const useImageAnalysis = () => {
     return items;
   };
 
-  // Match recognized items against existing products
-  const matchItemsWithProducts = (items: InventoryRecognitionResult[], products: Product[]): InventoryRecognitionResult[] => {
-    return items.map(item => {
-      // Try to find matching product by name
-      const matchedProduct = products.find(product => 
-        product.name.toLowerCase().includes(item.name.toLowerCase()) || 
-        item.name.toLowerCase().includes(product.name.toLowerCase())
-      );
+  // Process video for inventory
+  const processVideo = async (file: File) => {
+    setIsUploading(true);
+
+    try {
+      const results = await processInventoryVideo(file);
+      setRecognizedItems(results);
+      setAnalysisResult("Video processed successfully. Here are the detected items:");
       
-      if (matchedProduct) {
+    } catch (error) {
+      console.error("Error processing video:", error);
+      toast.error("Failed to process video");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Match extracted items with existing products
+  const matchItemsWithProducts = (
+    items: InventoryRecognitionResult[], 
+    products: Product[]
+  ): InventoryRecognitionResult[] => {
+    return items.map(item => {
+      // Try to find matching product
+      const matchingProduct = products.find(product => {
+        const normalizedProductName = product.name.toLowerCase().trim();
+        const normalizedItemName = item.name.toLowerCase().trim();
+        
+        return normalizedProductName.includes(normalizedItemName) || 
+               normalizedItemName.includes(normalizedProductName);
+      });
+      
+      if (matchingProduct) {
         return {
           ...item,
-          productId: matchedProduct.id
+          productId: matchingProduct.id
         };
       }
       
@@ -125,20 +153,16 @@ export const useImageAnalysis = () => {
     });
   };
 
-  // Reset analysis results
-  const resetAnalysis = () => {
-    setAnalysisResult(null);
-    setRecognizedItems([]);
-  };
-
   return {
     isAnalyzing,
+    isUploading,
     analysisResult,
     recognizedItems,
     setRecognizedItems,
+    resetAnalysis,
     analyzeSingleItemImage,
-    matchItemsWithProducts,
-    resetAnalysis
+    processVideo,
+    matchItemsWithProducts
   };
 };
 
